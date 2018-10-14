@@ -6,37 +6,37 @@ import numpy as np
 import cv2
 
 from ssdmultibox import config, utils
-from ssdmultibox.utils import PascalReader, TrainPascalReader
+from ssdmultibox.utils import PascalDataset, TrainPascalDataset
 
 TEST_IMAGE_ID = 17
 TRAIN_DATA_COUNT = 2501
 
 
-class PascalReaderTests(unittest.TestCase):
+class PascalDatasetTests(unittest.TestCase):
 
     def setUp(self):
-        self.reader = TrainPascalReader()
+        self.dataset = TrainPascalDataset()
 
     def test_setup(self):
-        assert isinstance(self.reader, PascalReader)
+        assert isinstance(self.dataset, PascalDataset)
 
     def test_len(self):
-        assert len(self.reader) == TRAIN_DATA_COUNT
+        assert len(self.dataset) == TRAIN_DATA_COUNT
 
     def test_getitem(self):
-        image_ids = self.reader.get_image_ids()
+        image_ids = self.dataset.get_image_ids()
         image_id = image_ids[1]
         assert image_id == TEST_IMAGE_ID
-        all_ann = self.reader.annotations(limit=2)
+        all_ann = self.dataset.annotations(limit=2)
 
-        ret = self.reader[image_id]
+        ret = self.dataset[image_id]
 
         assert ret == all_ann[TEST_IMAGE_ID]
 
     def test_raw_annotations(self):
-        ret = self.reader.raw_annotations()
+        ret = self.dataset.raw_annotations()
 
-        assert self.reader.preview(ret) == \
+        assert self.dataset.preview(ret) == \
             {'segmentation': [[155, 96, 155, 270, 351, 270, 351, 96]],
              'area': 34104,
              'iscrowd': 0,
@@ -48,15 +48,15 @@ class PascalReaderTests(unittest.TestCase):
              }
 
     def test_raw_images(self):
-        ret = self.reader.raw_images()
+        ret = self.dataset.raw_images()
 
         assert next(iter(ret)) == \
             {'file_name': '000012.jpg', 'height': 333, 'width': 500, 'id': 12}
 
     def test_raw_categories(self):
-        data = self.reader.data()
+        data = self.dataset.data()
 
-        ret = self.reader.raw_categories(data)
+        ret = self.dataset.raw_categories(data)
 
         assert ret == {
             1: 'aeroplane',
@@ -82,14 +82,14 @@ class PascalReaderTests(unittest.TestCase):
         }
 
     def test_data(self):
-        ret = self.reader.data()
+        ret = self.dataset.data()
         assert list(ret.keys()) == \
             ['images', 'type', 'annotations', 'categories']
 
     def test_raw_annotations(self):
-        ret = self.reader.raw_annotations()
+        ret = self.dataset.raw_annotations()
 
-        assert self.reader.preview(ret) == \
+        assert self.dataset.preview(ret) == \
             {'segmentation': [[155, 96, 155, 270, 351, 270, 351, 96]],
              'area': 34104,
              'iscrowd': 0,
@@ -101,32 +101,32 @@ class PascalReaderTests(unittest.TestCase):
              }
 
     def test_raw_images(self):
-        ret = self.reader.raw_images()
+        ret = self.dataset.raw_images()
 
         assert next(iter(ret)) == \
             {'file_name': '000012.jpg', 'height': 333, 'width': 500, 'id': 12}
 
     def test_images(self):
-        ret = self.reader.images()
+        ret = self.dataset.images()
 
         assert isinstance(ret, dict)
-        assert self.reader.preview(ret) == \
+        assert self.dataset.preview(ret) == \
             (12,  f'{config.DATADIR}/JPEGImages/000012.jpg')
 
     def test_get_filenames(self):
-        ret = self.reader.get_filenames()
+        ret = self.dataset.get_filenames()
 
-        assert self.reader.preview(ret) == (12, '000012.jpg')
+        assert self.dataset.preview(ret) == (12, '000012.jpg')
 
     def test_get_image_ids(self):
-        ret = self.reader.get_image_ids()
+        ret = self.dataset.get_image_ids()
 
         assert ret[:3] == [12, 17, 23]
 
     def test_annotations(self):
-        ret = self.reader.annotations(limit=2)
+        ret = self.dataset.annotations(limit=2)
 
-        image_id, ann = self.reader.preview(ret)
+        image_id, ann = self.dataset.preview(ret)
         assert image_id == 12
         assert ann['image_path'] == f'{config.DATADIR}/JPEGImages/000012.jpg'
         assert np.isclose(ann['bbs'],[[0.31   , 0.28829, 0.392  , 0.52252]]).all()
@@ -138,7 +138,7 @@ class PascalReaderTests(unittest.TestCase):
         raw_ret = [[0.0008 , 0.00046, 0.00041, 0.00104],
                    [0.00039, 0.00058, 0.00136, 0.00195]]
 
-        ret = self.reader.annotations(limit=2)
+        ret = self.dataset.annotations(limit=2)
 
         ann = ret[TEST_IMAGE_ID]
         assert ann['image_path'] == f'{config.DATADIR}/JPEGImages/000017.jpg'
@@ -154,7 +154,7 @@ class PascalReaderTests(unittest.TestCase):
         return ["{:4f}" for a in arr]
 
     def test_scale_bbs(self):
-        ann_all = self.reader.annotations(limit=2)
+        ann_all = self.dataset.annotations(limit=2)
         ann = ann_all[TEST_IMAGE_ID]
         im = cv2.imread(ann[utils.IMAGE_PATH])
         im_h = im.shape[0]
@@ -164,15 +164,15 @@ class PascalReaderTests(unittest.TestCase):
         raw_ret = [[0.38333, 0.16758, 0.19792, 0.37912],
                    [0.18542, 0.21154, 0.65417, 0.71154]]
 
-        ret = self.reader.scale_bbs(bbs, im)
+        ret = self.dataset.scale_bbs(bbs, im)
 
         self.assert_arr_equals(ret, raw_ret)
 
 
-class TrainPascalReaderTests(unittest.TestCase):
+class TrainPascalDatasetTests(unittest.TestCase):
 
     def setUp(self):
-        self.reader = TrainPascalReader()
+        self.dataset = TrainPascalDataset()
 
     def test_pascal_json(self):
-        assert self.reader.pascal_json == 'pascal_train2007.json'
+        assert self.dataset.pascal_json == 'pascal_train2007.json'

@@ -32,7 +32,7 @@ IMAGE = 'image'
 IMAGE_PATH = 'image_path'
 
 
-class PascalReader(Dataset):
+class PascalDataset(Dataset):
 
     def __init__(self):
         self.filepath = config.DATADIR
@@ -131,7 +131,7 @@ class PascalReader(Dataset):
         return ret
 
 
-class TrainPascalReader(PascalReader):
+class TrainPascalDataset(PascalDataset):
 
     @property
     def pascal_json(self):
