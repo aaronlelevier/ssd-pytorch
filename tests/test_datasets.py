@@ -6,13 +6,22 @@ import numpy as np
 import cv2
 
 from ssdmultibox import config, datasets
-from ssdmultibox.datasets import PascalDataset, TrainPascalDataset
+from ssdmultibox.datasets import PascalDataset, TrainPascalDataset, Bboxer
 
 TEST_IMAGE_ID = 17
 TRAIN_DATA_COUNT = 2501
 
 
-class PascalDatasetTests(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
+
+    def assert_arr_equals(self, a, b):
+        assert self.compare(a) == self.compare(b)
+
+    def compare(self, arr):
+        return ["{:4f}" for a in arr]
+
+
+class PascalDatasetTests(BaseTestCase):
 
     def setUp(self):
         self.dataset = TrainPascalDataset()
@@ -147,12 +156,6 @@ class PascalDatasetTests(unittest.TestCase):
         assert isinstance(ann['image'], np.ndarray)
         assert ann['image'].shape == (3, 224, 224)
 
-    def assert_arr_equals(self, a, b):
-        assert self.compare(a) == self.compare(b)
-
-    def compare(self, arr):
-        return ["{:4f}" for a in arr]
-
     def test_scale_bbs(self):
         ann_all = self.dataset.annotations(limit=2)
         ann = ann_all[TEST_IMAGE_ID]
@@ -169,10 +172,67 @@ class PascalDatasetTests(unittest.TestCase):
         self.assert_arr_equals(ret, raw_ret)
 
 
-class TrainPascalDatasetTests(unittest.TestCase):
+class TrainPascalDatasetTests(BaseTestCase):
 
     def setUp(self):
         self.dataset = TrainPascalDataset()
 
     def test_pascal_json(self):
         assert self.dataset.pascal_json == 'pascal_train2007.json'
+
+
+class BboxerTests(BaseTestCase):
+
+    def setUp(self):
+        self.bboxer = Bboxer(grid_size=4)
+
+    def test_anchors(self):
+        raw_ret = [
+            [0.1250, 0.1250, 0.2500, 0.2500],
+            [0.1250, 0.3750, 0.2500, 0.2500],
+            [0.1250, 0.6250, 0.2500, 0.2500],
+            [0.1250, 0.8750, 0.2500, 0.2500],
+            [0.3750, 0.1250, 0.2500, 0.2500],
+            [0.3750, 0.3750, 0.2500, 0.2500],
+            [0.3750, 0.6250, 0.2500, 0.2500],
+            [0.3750, 0.8750, 0.2500, 0.2500],
+            [0.6250, 0.1250, 0.2500, 0.2500],
+            [0.6250, 0.3750, 0.2500, 0.2500],
+            [0.6250, 0.6250, 0.2500, 0.2500],
+            [0.6250, 0.8750, 0.2500, 0.2500],
+            [0.8750, 0.1250, 0.2500, 0.2500],
+            [0.8750, 0.3750, 0.2500, 0.2500],
+            [0.8750, 0.6250, 0.2500, 0.2500],
+            [0.8750, 0.8750, 0.2500, 0.2500]
+        ]
+
+        ret = self.bboxer.anchors()
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_anchor_corners(self):
+        raw_ret = [
+            [0.0000, 0.0000, 0.2500, 0.2500],
+            [0.0000, 0.2500, 0.2500, 0.5000],
+            [0.0000, 0.5000, 0.2500, 0.7500],
+            [0.0000, 0.7500, 0.2500, 1.0000],
+            [0.2500, 0.0000, 0.5000, 0.2500],
+            [0.2500, 0.2500, 0.5000, 0.5000],
+            [0.2500, 0.5000, 0.5000, 0.7500],
+            [0.2500, 0.7500, 0.5000, 1.0000],
+            [0.5000, 0.0000, 0.7500, 0.2500],
+            [0.5000, 0.2500, 0.7500, 0.5000],
+            [0.5000, 0.5000, 0.7500, 0.7500],
+            [0.5000, 0.7500, 0.7500, 1.0000],
+            [0.7500, 0.0000, 1.0000, 0.2500],
+            [0.7500, 0.2500, 1.0000, 0.5000],
+            [0.7500, 0.5000, 1.0000, 0.7500],
+            [0.7500, 0.7500, 1.0000, 1.0000]
+        ]
+
+        ret = self.bboxer.anchor_corners()
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_intersection(self):
+        ret = self.bboxer.get_intersection()

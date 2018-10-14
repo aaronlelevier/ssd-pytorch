@@ -136,3 +136,33 @@ class TrainPascalDataset(PascalDataset):
     @property
     def pascal_json(self):
         return 'pascal_train2007.json'
+
+
+class Bboxer:
+
+    def __init__(self, grid_size, k=1):
+        self.grid_size = grid_size
+
+    def anchors(self):
+        anc_grid = 4
+        k = 1
+        anc_offset = 1/(anc_grid*2)
+        anc_x = np.repeat(np.linspace(anc_offset, 1-anc_offset, anc_grid), 4)
+        anc_y = np.tile(np.linspace(anc_offset, 1-anc_offset, anc_grid), 4)
+        anc_centers = np.tile(np.stack([anc_x,anc_y], axis=1), (k,1))
+        anc_w = 1/anc_grid
+        anc_h = 1/anc_grid
+        anc_sizes = np.array([[anc_w, anc_h] for i in range(anc_grid*anc_grid)])
+        return np.array(
+            np.concatenate([anc_centers, anc_sizes], axis=1), dtype=np.float)
+
+    def anchor_corners(self):
+        anchors = self.anchors()
+        return self.hw2corners(anchors[:,:2], anchors[:,2:])
+
+    def hw2corners(self, center, hw):
+        return np.concatenate([center-hw/2, center+hw/2], axis=1)
+
+    def get_intersection(self, bbs):
+        # calc per bbs
+        pass
