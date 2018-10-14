@@ -5,8 +5,8 @@ import unittest
 import numpy as np
 import cv2
 
-from ssdmultibox import config, utils
-from ssdmultibox.utils import PascalDataset, TrainPascalDataset
+from ssdmultibox import config, datasets
+from ssdmultibox.datasets import PascalDataset, TrainPascalDataset
 
 TEST_IMAGE_ID = 17
 TRAIN_DATA_COUNT = 2501
@@ -156,7 +156,7 @@ class PascalDatasetTests(unittest.TestCase):
     def test_scale_bbs(self):
         ann_all = self.dataset.annotations(limit=2)
         ann = ann_all[TEST_IMAGE_ID]
-        im = cv2.imread(ann[utils.IMAGE_PATH])
+        im = cv2.imread(ann[datasets.IMAGE_PATH])
         im_h = im.shape[0]
         im_w = im.shape[1]
         bbs = [[184, 61, 95, 138],
