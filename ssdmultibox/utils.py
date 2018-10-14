@@ -1,12 +1,16 @@
+import abc
 import collections
 import json
 import os
 import platform
 
+import cv2
 import numpy as np
-from fastai.dataset import open_image
+from torch.utils.data import Dataset
 
 from ssdmultibox import config
+
+SIZE = 224
 
 IMAGES = 'images'
 ANNOTATIONS = 'annotations'
@@ -24,62 +28,88 @@ CATEGORY = 'category'
 TRAIN = 'train'
 VAL = 'val'
 TEST = 'test'
+IMAGE = 'image'
 IMAGE_PATH = 'image_path'
 
 
-class PascalReader:
+class PascalReader(Dataset):
 
-    def __init__(self, filepath:str)->None:
-        self.filepath = filepath
+    def __init__(self):
+        self.filepath = config.DATADIR
 
-    def train_data(self):
-        return json.load((self.filepath/'pascal_train2007.json').open())
+    def pascal_json(self):
+        raise NotImplementedError('pascal_json')
+
+    def __len__(self):
+        return len(self.raw_images())
+
+    def __getitem__(self, idx):
+        if not self._annotations:
+            self.annotations()
+        return self._annotations[idx]
+
+    def data(self):
+        if not self._data:
+            self._data = json.load((self.filepath/self.pascal_json).open())
+        return self._data
+    _data = None
 
     def raw_annotations(self)->list:
-        return self.train_data()[ANNOTATIONS]
+        return self.data()[ANNOTATIONS]
 
     def raw_images(self):
-        return self.train_data()[IMAGES]
+        return self.data()[IMAGES]
 
-    def categories(self, data):
-        return {c[ID]:c[NAME] for c in self.train_data()[CATEGORIES]}
+    def raw_categories(self, data):
+        return {c[ID]:c[NAME] for c in self.data()[CATEGORIES]}
 
     def images(self):
         # returns a dict of id,image_fullpath
         return {k: f'{config.IMAGE_PATH}/{v}' for k,v in self.get_filenames().items()}
 
-    def annotations(self, data):
-        all_ann = {image_id:{
-            'image_path': None,
-            BBS: [],
-            CATS: [],
-        } for image_id in self.get_filenames().keys()}
+    def annotations(self, limit=None):
+        if not self._annotations:
+            data = self.data()
+            all_ann = {image_id:{
+                'image_path': None,
+                BBS: [],
+                CATS: [],
+            } for image_id in self.get_filenames().keys()}
 
-        image_paths = self.images()
-        
-        for x in data[ANNOTATIONS]:
-            image_id = x[IMAGE_ID]
-            all_ann[image_id][BBS].append([o for o in x[BBOX]])
-            # categories are 0 indexed here
-            all_ann[image_id][CATS].append(x[CATEGORY_ID]-1)
-            all_ann[image_id][IMAGE_PATH] = image_paths[image_id]
+            image_paths = self.images()
 
-        # scale bbs between [0,1]
-        for i, x in enumerate(data[ANNOTATIONS]):
-            image_id = x[IMAGE_ID]
-            im = open_image(image_paths[x[IMAGE_ID]])
-            bbs = np.array(all_ann[image_id][BBS])
-            scale_bbs = self.scale_bbs(bbs, im)
-            all_ann[image_id][BBS] = scale_bbs
+            for x in data[ANNOTATIONS]:
+                image_id = x[IMAGE_ID]
+                all_ann[image_id][BBS].append([o for o in x[BBOX]])
+                # categories are 0 indexed here
+                all_ann[image_id][CATS].append(x[CATEGORY_ID]-1)
+                all_ann[image_id][IMAGE_PATH] = image_paths[image_id]
 
-            # for testing - remove
-            if i > 1:
-                break
+            # scale bbs between [0,1]
+            for i, x in enumerate(data[ANNOTATIONS]):
+                image_id = x[IMAGE_ID]
+                im = cv2.imread(image_paths[x[IMAGE_ID]])
+                bbs = np.array(all_ann[image_id][BBS])
+                scale_bbs = self.scale_bbs(bbs, im)
+                all_ann[image_id][BBS] = scale_bbs
 
-        return all_ann
+                resized_image = cv2.resize(im, (SIZE, SIZE)) # HW
+                image = np.transpose(resized_image, (2, 0, 1))
+                all_ann[image_id][IMAGE] = image
+
+                # for testing - remove
+                if limit and i > limit:
+                    break
+
+            self._annotations = all_ann
+        return self._annotations
+    _annotations = None
 
     def get_filenames(self):
         return {o[ID]:o[FILE_NAME] for o in self.raw_images()}
+
+    def get_image_ids(self):
+        return list(self.get_filenames())
 
     def preview(self, data):
         if isinstance(data, (list, tuple)):
@@ -99,3 +129,10 @@ class PascalReader:
             # empty bbs list division error
             ret = [] 
         return ret
+
+
+class TrainPascalReader(PascalReader):
+
+    @property
+    def pascal_json(self):
+        return 'pascal_train2007.json'
