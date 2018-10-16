@@ -8,8 +8,11 @@ import cv2
 from ssdmultibox import config, datasets
 from ssdmultibox.datasets import PascalDataset, TrainPascalDataset, Bboxer
 
-TEST_IMAGE_ID = 17
 TRAIN_DATA_COUNT = 2501
+
+TEST_IMAGE_ID = 17
+TEST_IMAGE_BBS = [[0.38333, 0.16758, 0.19792, 0.37912],
+                  [0.18542, 0.21154, 0.65417, 0.71154]]
 
 
 class BaseTestCase(unittest.TestCase):
@@ -235,4 +238,4 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_intersection(self):
-        ret = self.bboxer.get_intersection()
+        ret = self.bboxer.get_intersection(TEST_IMAGE_BBS)
