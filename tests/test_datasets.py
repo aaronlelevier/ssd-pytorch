@@ -11,16 +11,18 @@ from ssdmultibox.datasets import PascalDataset, TrainPascalDataset, Bboxer
 TRAIN_DATA_COUNT = 2501
 
 TEST_IMAGE_ID = 17
-TEST_IMAGE_BBS = [[0.38333, 0.16758, 0.19792, 0.37912],
-                  [0.18542, 0.21154, 0.65417, 0.71154]]
+TEST_SCALED_PASCAL_BBS = [[0.38333, 0.16758, 0.19792, 0.37912],
+                          [0.18542, 0.21154, 0.65417, 0.71154]]
+TEST_PASCAL_BBS = [[184.,  61.,  95., 138.],
+                   [ 89.,  77., 314., 259.]]
 
 
 class BaseTestCase(unittest.TestCase):
 
     def assert_arr_equals(self, a, b):
-        assert self.compare(a) == self.compare(b)
+        assert self.arr_compare(a) == self.arr_compare(b)
 
-    def compare(self, arr):
+    def arr_compare(self, arr):
         return ["{:4f}" for a in arr]
 
 
@@ -188,6 +190,7 @@ class BboxerTests(BaseTestCase):
 
     def setUp(self):
         self.bboxer = Bboxer(grid_size=4)
+        self.dataset = TrainPascalDataset()
 
     def test_anchors(self):
         raw_ret = [
@@ -238,4 +241,46 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_intersection(self):
-        ret = self.bboxer.get_intersection(TEST_IMAGE_BBS)
+        raw_ret = [
+            [0.0110, 0.0096, 0.0063, 0.0143, 0.0333, 0.0292, 0.0192, 0.0433, 0.0056, 0.0049, 0.0032, 0.0073, 0.0277, 0.0242, 0.0160, 0.0360],
+            [0.0025, 0.0096, 0.0096, 0.0033, 0.0161, 0.0625, 0.0625, 0.0213, 0.0161, 0.0625, 0.0625, 0.0213, 0.0109, 0.0422, 0.0422, 0.0144]
+        ]
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_intersection(
+            TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_scaled_fastai_bbs(self):
+        raw_ret = [[0.16758, 0.38333, 0.54224, 0.57679],
+                   [0.21154, 0.18542, 0.91861, 0.83512]]
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.scaled_fastai_bbs(
+            TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_ancb_area(self):
+        ret = self.bboxer.get_ancb_area()
+
+        assert ret == 0.0625
+
+    def test_get_bbs_area(self):
+        raw_ret = [0.07248, 0.45939]
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_bbs_area(TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_iou(self):
+        raw_ret = [
+            [0.08141, 0.07124, 0.04689, 0.10576, 0.24695, 0.21608, 0.14222, 0.32082, 0.04172, 0.03651, 0.02403, 0.0542 , 0.20523, 0.17958, 0.11819, 0.26661],
+            [0.00476, 0.01842, 0.01842, 0.00627, 0.03094, 0.11976, 0.11976, 0.04077, 0.03094, 0.11976, 0.11976, 0.04077, 0.02087, 0.08077, 0.08077, 0.0275 ]]
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(ret, raw_ret)

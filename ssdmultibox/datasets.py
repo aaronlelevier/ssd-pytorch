@@ -163,6 +163,42 @@ class Bboxer:
     def hw2corners(self, center, hw):
         return np.concatenate([center-hw/2, center+hw/2], axis=1)
 
-    def get_intersection(self, bbs):
-        # calc per bbs
-        pass
+    def get_intersection(self, bbs, im):
+        # returns the i part of IoU scaled [0,1]
+        bbs = self.scaled_fastai_bbs(bbs, im)
+        bbs16 = np.reshape(np.tile(bbs, 16), (2,16,4))
+        anchor_corners = self.anchor_corners()
+        intersect = np.abs(np.maximum(
+            anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
+        return intersect[:,:,0] * intersect[:,:,1]
+
+    def scaled_fastai_bbs(self, bbs, im):
+        """
+        Args:
+            bbs (list): pascal bb of [x, y, abs_x-x, abs_y-y]
+            im (np.array): 3d HWC
+        Returns:
+            (np.array): fastai bb of [y, x, abs_y, abs_x]
+        """
+        im_w = im.shape[1]
+        im_h = im.shape[0]
+        bbs = np.divide(bbs, [im_w, im_h, im_w, im_h])
+        return np.array([
+            bbs[:,1],
+            bbs[:,0],
+            bbs[:,3]+bbs[:,1]-(1/SIZE),
+            bbs[:,2]+bbs[:,0]-(1/SIZE)]).T
+
+    def get_ancb_area(self):
+        "Returns the [0,1] normalized area of a single anchor box"
+        return 1. / np.square(self.grid_size)
+
+    def get_bbs_area(self, bbs, im):
+        "Returns a np.array of the [0,1] normalized bbs area"
+        bbs = self.scaled_fastai_bbs(bbs, im)
+        return np.abs(bbs[:,0]-bbs[:,2])*np.abs(bbs[:,1]-bbs[:,3])
+
+    def get_iou(self, bbs, im):
+        intersect = self.get_intersection(bbs, im)
+        bbs_union = self.get_ancb_area() + self.get_bbs_area(bbs, im)
+        return (intersect.T / bbs_union).T
