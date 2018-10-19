@@ -1,20 +1,17 @@
-import json
-import os
 import unittest
 
-import numpy as np
 import cv2
+import numpy as np
 
 from ssdmultibox import config, datasets
-from ssdmultibox.datasets import PascalDataset, TrainPascalDataset, Bboxer
+from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset
 
 TRAIN_DATA_COUNT = 2501
 
 TEST_IMAGE_ID = 17
-TEST_SCALED_PASCAL_BBS = [[0.38333, 0.16758, 0.19792, 0.37912],
-                          [0.18542, 0.21154, 0.65417, 0.71154]]
 TEST_PASCAL_BBS = [[184.,  61.,  95., 138.],
                    [ 89.,  77., 314., 259.]]
+TEST_CATS = [14, 12]
 
 
 class BaseTestCase(unittest.TestCase):
@@ -46,26 +43,6 @@ class PascalDatasetTests(BaseTestCase):
         ret = self.dataset[image_id]
 
         assert ret == all_ann[TEST_IMAGE_ID]
-
-    def test_raw_annotations(self):
-        ret = self.dataset.raw_annotations()
-
-        assert self.dataset.preview(ret) == \
-            {'segmentation': [[155, 96, 155, 270, 351, 270, 351, 96]],
-             'area': 34104,
-             'iscrowd': 0,
-             'image_id': 12,
-             'bbox': [155, 96, 196, 174],
-             'category_id': 7, # category 1 ith indexed here in raw_annotations
-             'id': 1,
-             'ignore': 0
-             }
-
-    def test_raw_images(self):
-        ret = self.dataset.raw_images()
-
-        assert next(iter(ret)) == \
-            {'file_name': '000012.jpg', 'height': 333, 'width': 500, 'id': 12}
 
     def test_raw_categories(self):
         data = self.dataset.data()
@@ -165,8 +142,6 @@ class PascalDatasetTests(BaseTestCase):
         ann_all = self.dataset.annotations(limit=2)
         ann = ann_all[TEST_IMAGE_ID]
         im = cv2.imread(ann[datasets.IMAGE_PATH])
-        im_h = im.shape[0]
-        im_w = im.shape[1]
         bbs = [[184, 61, 95, 138],
                [89, 77, 314, 259]]
         raw_ret = [[0.38333, 0.16758, 0.19792, 0.37912],
@@ -284,3 +259,48 @@ class BboxerTests(BaseTestCase):
         ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im)
 
         self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_gt_overlap_and_idx(self):
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret_gt_overlap, ret_gt_idx = self.bboxer.get_gt_overlap_and_idx(
+            TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(
+            ret_gt_overlap,
+            [0.0814, 0.0712, 0.0469, 0.1058, 0.2470, 1.9900, 0.1422, 1.9900, 0.0417, 0.1198, 0.1198, 0.0542, 0.2052, 0.1796, 0.1182, 0.2666]
+        )
+        self.assert_arr_equals(
+            ret_gt_idx,
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+        )
+
+    def test_get_gt_bbs_and_cats(self):
+        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret_gt_bbs, ret_gt_cats = self.bboxer.get_gt_bbs_and_cats(
+            TEST_PASCAL_BBS, TEST_CATS, im)
+
+        self.assert_arr_equals(
+            ret_gt_bbs,
+            [[0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.21154, 0.18542, 0.91861, 0.83512],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.21154, 0.18542, 0.91861, 0.83512],
+                [0.21154, 0.18542, 0.91861, 0.83512],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679],
+                [0.16758, 0.38333, 0.54224, 0.57679]]
+        )
+        self.assert_arr_equals(
+            ret_gt_cats,
+            [14, 14, 14, 14, 14, 12, 14, 14, 14, 12, 12, 14, 14, 14, 14, 14]
+        )

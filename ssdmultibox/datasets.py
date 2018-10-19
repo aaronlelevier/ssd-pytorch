@@ -1,11 +1,9 @@
 import abc
-import collections
 import json
-import os
-import platform
 
 import cv2
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 from ssdmultibox import config
@@ -37,8 +35,10 @@ class PascalDataset(Dataset):
     def __init__(self):
         self.filepath = config.DATADIR
 
+    @abc.abstractmethod
     def pascal_json(self):
-        raise NotImplementedError('pascal_json')
+        "Returns the json data per the mode. i.e. train, val, test"
+        pass
 
     def __len__(self):
         return len(self.raw_images())
@@ -202,3 +202,19 @@ class Bboxer:
         intersect = self.get_intersection(bbs, im)
         bbs_union = self.get_ancb_area() + self.get_bbs_area(bbs, im)
         return (intersect.T / bbs_union).T
+
+    def get_gt_overlap_and_idx(self, bbs, im):
+        overlaps = torch.tensor(self.get_iou(bbs, im))
+        _, prior_idx = overlaps.max(1)
+        gt_overlap, gt_idx = overlaps.max(0)
+        gt_overlap[prior_idx] = 1.99
+        # sets the gt_idx equal to the obj_idx for each prior_idx
+        for i,o in enumerate(prior_idx):
+            gt_idx[o] = i
+        return gt_overlap, gt_idx
+
+    def get_gt_bbs_and_cats(self, bbs, cats, im):
+        _, gt_idx = self.get_gt_overlap_and_idx(bbs, im)
+        bbs = self.scaled_fastai_bbs(bbs, im)
+        cats = np.array(cats)
+        return bbs[gt_idx], cats[gt_idx]
