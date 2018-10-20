@@ -1,14 +1,19 @@
-import abc
 import json
 
 import cv2
 import numpy as np
 import torch
+from fastai.dataset import open_image
 from torch.utils.data import Dataset
 
 from ssdmultibox import config
 
 SIZE = 224
+
+NUM_CLASSES = 21
+
+# IoU threshold
+THRESH = 0.5
 
 IMAGES = 'images'
 ANNOTATIONS = 'annotations'
@@ -32,21 +37,32 @@ IMAGE_PATH = 'image_path'
 
 class PascalDataset(Dataset):
 
-    def __init__(self):
+    def __init__(self, grid_size, k=1):
         self.filepath = config.DATADIR
+        self.bboxer = Bboxer(grid_size, k)
 
-    @abc.abstractmethod
+    @property
     def pascal_json(self):
         "Returns the json data per the mode. i.e. train, val, test"
-        pass
+        raise NotImplementedError('pascal_json')
 
     def __len__(self):
         return len(self.raw_images())
 
     def __getitem__(self, idx):
-        if not self._annotations:
-            self.annotations()
-        return self._annotations[idx]
+        image_ids = self.get_image_ids()
+        image_id = image_ids[idx]
+        ann = self.get_annotations()[image_id]
+        bbs = ann[BBS]
+        cats = ann[CATS]
+
+        image_paths = self.images()
+        im = open_image(image_paths[image_id])
+        chw_im = self.scaled_im_by_size_and_chw_format(im)
+
+        gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats(bbs, cats, im)
+
+        return image_id, chw_im, gt_bbs, gt_cats
 
     def data(self):
         if not self._data:
@@ -54,62 +70,70 @@ class PascalDataset(Dataset):
         return self._data
     _data = None
 
+    def raw_categories(self, data):
+        return {c[ID]:c[NAME] for c in self.data()[CATEGORIES]}
+
+    def categories(self):
+        """
+        Returns a 0 dict of category id,name including a 'bg' category at the end
+
+        category_ids are 0 indexed. bg category_id is 20
+        """
+        cats = [x[NAME] for x in self.data()[CATEGORIES]]
+        cats.append('bg')
+        return {i:c for i,c in enumerate(cats)}
+
+    def category_ids(self):
+        return np.array(list(self.categories().keys()))
+
+    def category_names(self):
+        return np.array(list(self.categories().values()))
+
     def raw_annotations(self)->list:
         return self.data()[ANNOTATIONS]
 
     def raw_images(self):
         return self.data()[IMAGES]
 
-    def raw_categories(self, data):
-        return {c[ID]:c[NAME] for c in self.data()[CATEGORIES]}
-
     def images(self):
         # returns a dict of id,image_fullpath
         return {k: f'{config.IMAGE_PATH}/{v}' for k,v in self.get_filenames().items()}
-
-    def annotations(self, limit=None):
-        if not self._annotations:
-            data = self.data()
-            all_ann = {image_id:{
-                'image_path': None,
-                BBS: [],
-                CATS: [],
-            } for image_id in self.get_filenames().keys()}
-
-            image_paths = self.images()
-
-            for x in data[ANNOTATIONS]:
-                image_id = x[IMAGE_ID]
-                all_ann[image_id][BBS].append([o for o in x[BBOX]])
-                # categories are 0 indexed here
-                all_ann[image_id][CATS].append(x[CATEGORY_ID]-1)
-                all_ann[image_id][IMAGE_PATH] = image_paths[image_id]
-
-            # scale bbs between [0,1]
-            for i, x in enumerate(data[ANNOTATIONS]):
-                image_id = x[IMAGE_ID]
-                im = cv2.imread(image_paths[x[IMAGE_ID]])
-                bbs = np.array(all_ann[image_id][BBS])
-                scale_bbs = self.scale_bbs(bbs, im)
-                all_ann[image_id][BBS] = scale_bbs
-
-                resized_image = cv2.resize(im, (SIZE, SIZE)) # HW
-                image = np.transpose(resized_image, (2, 0, 1))
-                all_ann[image_id][IMAGE] = image
-
-                # for testing - remove
-                if limit and i > limit:
-                    break
-
-            self._annotations = all_ann
-        return self._annotations
-    _annotations = None
 
     def get_filenames(self):
         return {o[ID]:o[FILE_NAME] for o in self.raw_images()}
 
     def get_image_ids(self):
         return list(self.get_filenames())
+
+    def get_annotations(self):
+        """
+        Returns:
+            list<dict> with {
+                'image_path': full path to the image,
+                'bbs': list of pascal bbs,
+                'cats': list of 0 indexed cats
+            }
+        """
+        if not self._annotations:
+            raw_ann = self.raw_annotations()
+            all_ann = {image_id:{
+                IMAGE_PATH: None,
+                BBS: [],
+                CATS: [],
+            } for image_id in self.get_filenames().keys()}
+
+            image_paths = self.images()
+
+            for x in raw_ann:
+                image_id = x[IMAGE_ID]
+                all_ann[image_id][BBS].append([o for o in x[BBOX]])
+                # categories are 0 indexed here
+                all_ann[image_id][CATS].append(x[CATEGORY_ID]-1)
+                all_ann[image_id][IMAGE_PATH] = image_paths[image_id]
+
+            self._annotations = all_ann
+        return self._annotations
+    _annotations = None
 
     def preview(self, data):
         if isinstance(data, (list, tuple)):
@@ -119,16 +143,24 @@ class PascalDataset(Dataset):
         else:
             raise TypeError(f"Unsupported type: {type(data)}")
 
-    def scale_bbs(self, bbs, im):
-        # takes unscaled `bbs` and scales them to [0,1] based upon the `im.shape`
-        im_h = im.shape[0]
-        im_w = im.shape[1]
-        try:
-            ret = np.divide(bbs, [im_w, im_h, im_w, im_h])
-        except ValueError:
-            # empty bbs list division error
-            ret = [] 
-        return ret
+    def scaled_im_by_size_and_chw_format(self, im):
+        """
+        Returns an resized `im` with shape (3, SIZE, SIZE)
+
+        Args:
+            im (2d list): HWC format, with it's raw size
+        """
+        resized_image = cv2.resize(im, (SIZE, SIZE)) # HW
+        return np.transpose(resized_image, (2, 0, 1)) # CHW
+
+    def scaled_bbs_by_size(self, bbs):
+        """
+        Returns an resized `bbs` by the SIZE
+
+        Args:
+            bbs (1d list): normalized size of [0,1]
+        """
+        return np.multiply(bbs, SIZE)
 
 
 class TrainPascalDataset(PascalDataset):
@@ -214,7 +246,55 @@ class Bboxer:
         return gt_overlap, gt_idx
 
     def get_gt_bbs_and_cats(self, bbs, cats, im):
-        _, gt_idx = self.get_gt_overlap_and_idx(bbs, im)
-        bbs = self.scaled_fastai_bbs(bbs, im)
+        """
+        Returns bbs per anchor box gt labels and
+        1 hot encoded category per anchor box
+
+        Args:
+            bbs (2d list): of pascal bbs int coordinates
+            cats (2d list):
+                sparse list of int categories, one-hot encoded with the final
+                'bg' category shaved off
+                NOTE: nuance here, this allows the model to predict that there
+                are no objects identified, but it's behavior isn't guided
+                towards predicting the 'bg' everytime just to naively minimize
+                the cost
+            im: (2d list): of HWC raw pascal im
+        Returns:
+            bbs (2d list), cats (1d list)
+        """
+        gt_overlap, gt_idx = self.get_gt_overlap_and_idx(bbs, im)
+        bbs = np.multiply(self.scaled_fastai_bbs(bbs, im), SIZE)
         cats = np.array(cats)
-        return bbs[gt_idx], cats[gt_idx]
+        gt_bbs = bbs[gt_idx]
+        gt_cats = cats[gt_idx]
+        # the previous line will set the 0 ith class as the gt, so
+        # set it to bg if it doesn't meet the IoU threshold
+        pos = gt_overlap > THRESH
+        neg_idx = np.nonzero(1-pos)[:,0]
+        gt_cats[neg_idx] = 20
+        gt_cats = self.one_hot_encode(gt_cats, NUM_CLASSES)[:,:-1]
+        return gt_bbs, gt_cats
+
+    @staticmethod
+    def one_hot_encode(gt_cats, num_classes):
+        """
+        Returns cats one-hot encoded
+
+        Args:
+            gt_cats (1d list): dense vector of category labels
+            num_classes (int): number of posible category classes
+        Returns:
+            (2d list): shape = (len(gt_cats), num_classes)
+        """
+        return np.eye(num_classes)[gt_cats]
+
+    @staticmethod
+    def pascal_bbs(bbs):
+        """
+        Returns fastai_bbs as pascal formatted bbs
+
+        Args:
+            bbs (2d list): fastai encoded bbs
+        """
+        return np.array([bbs[:,1],bbs[:,0],bbs[:,3]-bbs[:,1]+1,bbs[:,2]-bbs[:,0]+1]).T

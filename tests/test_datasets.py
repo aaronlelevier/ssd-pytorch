@@ -1,10 +1,18 @@
 import unittest
 
-import cv2
 import numpy as np
+import pytest
+from fastai.dataset import open_image
 
-from ssdmultibox import config, datasets
+from ssdmultibox import config
 from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset
+
+# show full precision for debugging or else `np.isclose` won't work!
+np.set_printoptions(precision=15)
+
+SIZE = 224
+
+NUM_CLASSES = 21
 
 TRAIN_DATA_COUNT = 2501
 
@@ -13,36 +21,88 @@ TEST_PASCAL_BBS = [[184.,  61.,  95., 138.],
                    [ 89.,  77., 314., 259.]]
 TEST_CATS = [14, 12]
 
+TEST_GT_CATS = [20, 20, 20, 20, 20, 12, 20, 14, 20, 20, 20, 20, 20, 20, 20, 20]
+
+TEST_GT_CATS_ONE_HOT_ENCODED = np.array([
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.],
+    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
+
+TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = TEST_GT_CATS_ONE_HOT_ENCODED[:,:-1]
+
+TEST_GT_BBS_224 = [
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666],
+    [ 47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002]]
+
 
 class BaseTestCase(unittest.TestCase):
 
-    def assert_arr_equals(self, a, b):
-        assert self.arr_compare(a) == self.arr_compare(b)
-
-    def arr_compare(self, arr):
-        return ["{:4f}" for a in arr]
+    def assert_arr_equals(self, ret, raw_ret):
+        assert np.isclose(
+                np.array(ret, dtype=np.float16),
+                np.array(raw_ret, dtype=np.float16)
+            ).all(), f"\nret:\n{ret}\nraw_ret:\n{raw_ret}"
 
 
 class PascalDatasetTests(BaseTestCase):
 
     def setUp(self):
-        self.dataset = TrainPascalDataset()
+        grid_size = 4
+        self.dataset = TrainPascalDataset(grid_size)
+        # so we don't have to build the entire annotations cache
+        self.dataset.get_annotations()
 
     def test_setup(self):
         assert isinstance(self.dataset, PascalDataset)
+
+    def test_pascal_json(self):
+        dataset = PascalDataset(grid_size=4)
+
+        with pytest.raises(NotImplementedError):
+            dataset.pascal_json
 
     def test_len(self):
         assert len(self.dataset) == TRAIN_DATA_COUNT
 
     def test_getitem(self):
-        image_ids = self.dataset.get_image_ids()
-        image_id = image_ids[1]
-        assert image_id == TEST_IMAGE_ID
-        all_ann = self.dataset.annotations(limit=2)
+        ret_image_id, ret_im, ret_gt_bbs, ret_gt_cats = self.dataset[1]
 
-        ret = self.dataset[image_id]
+        assert ret_image_id == TEST_IMAGE_ID
+        assert ret_im.shape == (3, SIZE, SIZE)
+        self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
+        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
 
-        assert ret == all_ann[TEST_IMAGE_ID]
+    def test_data(self):
+        ret = self.dataset.data()
+        assert list(ret.keys()) == \
+            ['images', 'type', 'annotations', 'categories']
 
     def test_raw_categories(self):
         data = self.dataset.data()
@@ -72,10 +132,68 @@ class PascalDatasetTests(BaseTestCase):
             20: 'tvmonitor'
         }
 
-    def test_data(self):
-        ret = self.dataset.data()
-        assert list(ret.keys()) == \
-            ['images', 'type', 'annotations', 'categories']
+    def test_categories(self):
+        ret = self.dataset.categories()
+
+        assert ret == {
+            0: 'aeroplane',
+            1: 'bicycle',
+            2: 'bird',
+            3: 'boat',
+            4: 'bottle',
+            5: 'bus',
+            6: 'car',
+            7: 'cat',
+            8: 'chair',
+            9: 'cow',
+            10: 'diningtable',
+            11: 'dog',
+            12: 'horse',
+            13: 'motorbike',
+            14: 'person',
+            15: 'pottedplant',
+            16: 'sheep',
+            17: 'sofa',
+            18: 'train',
+            19: 'tvmonitor',
+            20: 'bg'}
+
+    def test_category_ids(self):
+        raw_ret = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+
+        ret = self.dataset.category_ids()
+
+        assert isinstance(ret, np.ndarray)
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_category_names(self):
+        raw_ret = [
+            'aeroplane',
+            'bicycle',
+            'bird',
+            'boat',
+            'bottle',
+            'bus',
+            'car',
+            'cat',
+            'chair',
+            'cow',
+            'diningtable',
+            'dog',
+            'horse',
+            'motorbike',
+            'person',
+            'pottedplant',
+            'sheep',
+            'sofa',
+            'train',
+            'tvmonitor',
+            'bg']
+
+        ret = self.dataset.category_names()
+
+        assert isinstance(ret, np.ndarray)
+        assert (ret == raw_ret).all()
 
     def test_raw_annotations(self):
         ret = self.dataset.raw_annotations()
@@ -114,40 +232,47 @@ class PascalDatasetTests(BaseTestCase):
 
         assert ret[:3] == [12, 17, 23]
 
-    def test_annotations(self):
-        ret = self.dataset.annotations(limit=2)
-
-        image_id, ann = self.dataset.preview(ret)
-        assert image_id == 12
-        assert ann['image_path'] == f'{config.DATADIR}/JPEGImages/000012.jpg'
-        assert np.isclose(ann['bbs'],[[0.31   , 0.28829, 0.392  , 0.52252]]).all()
-        assert ann['cats'] == [6]
-        assert isinstance(ann['image'], np.ndarray)
-        assert ann['image'].shape == (3, 224, 224)
-
-    def test_annotations__with_multi_bbs(self):
-        raw_ret = [[0.0008 , 0.00046, 0.00041, 0.00104],
-                   [0.00039, 0.00058, 0.00136, 0.00195]]
-
-        ret = self.dataset.annotations(limit=2)
+    def test_get_annotations(self):
+        ret = self.dataset.get_annotations()
 
         ann = ret[TEST_IMAGE_ID]
-        assert ann['image_path'] == f'{config.DATADIR}/JPEGImages/000017.jpg'
-        self.assert_arr_equals(ann['bbs'], raw_ret)
-        assert ann['cats'] == [14, 12]
-        assert isinstance(ann['image'], np.ndarray)
-        assert ann['image'].shape == (3, 224, 224)
+        assert sorted(ann.keys()) == ['bbs', 'cats', 'image_path']
+        assert ann['bbs'] == TEST_PASCAL_BBS
+        assert ann['cats'] == TEST_CATS
+        assert ann['image_path'] == self.dataset.images()[TEST_IMAGE_ID]
 
-    def test_scale_bbs(self):
-        ann_all = self.dataset.annotations(limit=2)
-        ann = ann_all[TEST_IMAGE_ID]
-        im = cv2.imread(ann[datasets.IMAGE_PATH])
-        bbs = [[184, 61, 95, 138],
-               [89, 77, 314, 259]]
-        raw_ret = [[0.38333, 0.16758, 0.19792, 0.37912],
-                   [0.18542, 0.21154, 0.65417, 0.71154]]
+    def test_preview__list(self):
+        mylist = [1,2,3,4]
+        ret = self.dataset.preview(mylist)
+        assert ret == mylist[0]
 
-        ret = self.dataset.scale_bbs(bbs, im)
+    def test_preview__tuple(self):
+        mylist = (5,6,7)
+        ret = self.dataset.preview(mylist)
+        assert ret == mylist[0]
+
+    def test_preview__dict(self):
+        d = {'foo': [1,2,3], 'bar': [4,5,6]}
+        ret = self.dataset.preview(d)
+        assert ret == ('foo', [1,2,3])
+
+    def test_scaled_im_by_size_and_chw_format(self):
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.dataset.scaled_im_by_size_and_chw_format(im)
+
+        assert isinstance(ret, np.ndarray)
+        assert ret.shape == (3, SIZE, SIZE)
+
+    def test_scaled_bbs_by_size(self):
+        raw_ret = np.array([
+            [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
+            [ 47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666]])
+        bbs = np.array([
+            [0.16758241758241757, 0.38333333333333336, 0.542239010989011, 0.5767857142857143],
+            [0.21153846153846154, 0.18541666666666667, 0.9186126373626374, 0.8351190476190476]])
+
+        ret = self.dataset.scaled_bbs_by_size(bbs)
 
         self.assert_arr_equals(ret, raw_ret)
 
@@ -155,7 +280,8 @@ class PascalDatasetTests(BaseTestCase):
 class TrainPascalDatasetTests(BaseTestCase):
 
     def setUp(self):
-        self.dataset = TrainPascalDataset()
+        grid_size = 4
+        self.dataset = TrainPascalDataset(grid_size)
 
     def test_pascal_json(self):
         assert self.dataset.pascal_json == 'pascal_train2007.json'
@@ -164,8 +290,9 @@ class TrainPascalDatasetTests(BaseTestCase):
 class BboxerTests(BaseTestCase):
 
     def setUp(self):
-        self.bboxer = Bboxer(grid_size=4)
-        self.dataset = TrainPascalDataset()
+        grid_size = 4
+        self.bboxer = Bboxer(grid_size)
+        self.dataset = TrainPascalDataset(grid_size)
 
     def test_anchors(self):
         raw_ret = [
@@ -216,11 +343,16 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_intersection(self):
-        raw_ret = [
-            [0.0110, 0.0096, 0.0063, 0.0143, 0.0333, 0.0292, 0.0192, 0.0433, 0.0056, 0.0049, 0.0032, 0.0073, 0.0277, 0.0242, 0.0160, 0.0360],
-            [0.0025, 0.0096, 0.0096, 0.0033, 0.0161, 0.0625, 0.0625, 0.0213, 0.0161, 0.0625, 0.0625, 0.0213, 0.0109, 0.0422, 0.0422, 0.0144]
-        ]
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        raw_ret = np.array([
+            [0.010989010989011, 0.009615384615385, 0.006328492935636, 0.01427590266876 , 0.033333333333333,
+             0.029166666666667, 0.019196428571429, 0.043303571428571, 0.005631868131868, 0.004927884615385,
+             0.003243352629513, 0.007316400117739, 0.027701465201465, 0.024238782051282, 0.015953075941915,
+             0.035987171310832],
+            [0.002483974358974, 0.009615384615385, 0.009615384615385, 0.00327380952381 , 0.016145833333333,
+             0.0625           , 0.0625           , 0.021279761904762, 0.016145833333333, 0.0625           ,
+             0.0625           , 0.021279761904762, 0.010889566163004, 0.042153159340659, 0.042153159340659,
+             0.014352147108844]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret = self.bboxer.get_intersection(
             TEST_PASCAL_BBS, im)
@@ -228,9 +360,10 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_scaled_fastai_bbs(self):
-        raw_ret = [[0.16758, 0.38333, 0.54224, 0.57679],
-                   [0.21154, 0.18542, 0.91861, 0.83512]]
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        raw_ret = np.array([
+            [0.16758241758241757, 0.38333333333333336, 0.542239010989011, 0.5767857142857143],
+            [0.21153846153846154, 0.18541666666666667, 0.9186126373626374, 0.8351190476190476]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret = self.bboxer.scaled_fastai_bbs(
             TEST_PASCAL_BBS, im)
@@ -243,32 +376,38 @@ class BboxerTests(BaseTestCase):
         assert ret == 0.0625
 
     def test_get_bbs_area(self):
-        raw_ret = [0.07248, 0.45939]
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        raw_ret = np.array([0.07247821003401361, 0.4593877755429095])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret = self.bboxer.get_bbs_area(TEST_PASCAL_BBS, im)
 
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_iou(self):
-        raw_ret = [
-            [0.08141, 0.07124, 0.04689, 0.10576, 0.24695, 0.21608, 0.14222, 0.32082, 0.04172, 0.03651, 0.02403, 0.0542 , 0.20523, 0.17958, 0.11819, 0.26661],
-            [0.00476, 0.01842, 0.01842, 0.00627, 0.03094, 0.11976, 0.11976, 0.04077, 0.03094, 0.11976, 0.11976, 0.04077, 0.02087, 0.08077, 0.08077, 0.0275 ]]
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        raw_ret = np.array([
+            [0.081413222076673, 0.071236569317089, 0.046885293070941, 0.105764498322821, 0.246953440299242,
+            0.216084260261837, 0.142218722315189, 0.32081897824589 , 0.041724276314295, 0.036508741775008,
+            0.024028712698857, 0.054204305390446, 0.205229163984947, 0.179575518486829, 0.118190009616331,
+            0.266614672855445],
+            [0.004759594831265, 0.018424238056509, 0.018424238056509, 0.006273014385907, 0.030937366403222,
+            0.11975754736731 , 0.11975754736731 , 0.040774593508394, 0.030937366403222, 0.11975754736731 ,
+            0.11975754736731 , 0.040774593508394, 0.020865723769206, 0.080770543622732, 0.080770543622732,
+            0.027500446995359]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im)
 
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_gt_overlap_and_idx(self):
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret_gt_overlap, ret_gt_idx = self.bboxer.get_gt_overlap_and_idx(
             TEST_PASCAL_BBS, im)
 
         self.assert_arr_equals(
             ret_gt_overlap,
-            [0.0814, 0.0712, 0.0469, 0.1058, 0.2470, 1.9900, 0.1422, 1.9900, 0.0417, 0.1198, 0.1198, 0.0542, 0.2052, 0.1796, 0.1182, 0.2666]
+            [0.08141, 0.07124, 0.04689, 0.10576, 0.24695, 1.99   , 0.14222, 1.99   , 0.04172, 0.11976, 0.11976, 0.0542 , 0.20523, 0.17958, 0.11819, 0.26661]
         )
         self.assert_arr_equals(
             ret_gt_idx,
@@ -276,31 +415,29 @@ class BboxerTests(BaseTestCase):
         )
 
     def test_get_gt_bbs_and_cats(self):
-        im = cv2.imread(self.dataset.images()[TEST_IMAGE_ID])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret_gt_bbs, ret_gt_cats = self.bboxer.get_gt_bbs_and_cats(
             TEST_PASCAL_BBS, TEST_CATS, im)
 
-        self.assert_arr_equals(
-            ret_gt_bbs,
-            [[0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.21154, 0.18542, 0.91861, 0.83512],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.21154, 0.18542, 0.91861, 0.83512],
-                [0.21154, 0.18542, 0.91861, 0.83512],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679],
-                [0.16758, 0.38333, 0.54224, 0.57679]]
-        )
-        self.assert_arr_equals(
-            ret_gt_cats,
-            [14, 14, 14, 14, 14, 12, 14, 14, 14, 12, 12, 14, 14, 14, 14, 14]
-        )
+        self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
+        assert ret_gt_bbs.shape == (16,4)
+        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
+        assert ret_gt_cats.shape == (16, 20)
+
+    def test_one_hot_encode(self):
+        ret = self.bboxer.one_hot_encode(TEST_GT_CATS, NUM_CLASSES)
+
+        self.assert_arr_equals(ret, TEST_GT_CATS_ONE_HOT_ENCODED)
+
+    def test_pascal_bbs(self):
+        raw_ret = np.array([
+            [ 41.53333333333333,  47.38461538461539, 146.53333333333333, 159.3846153846154 ],
+            [ 85.86666666666667,  37.53846153846153,  44.33333333333334,  84.92307692307692]])
+        fastai_bbs = np.array([
+            [ 47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666],
+            [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002]])
+
+        ret = self.bboxer.pascal_bbs(fastai_bbs)
+
+        self.assert_arr_equals(ret, raw_ret)
