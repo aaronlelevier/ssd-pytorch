@@ -343,6 +343,7 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_intersection(self):
+        # has 2 bbs to calculate the "intersection" for
         raw_ret = np.array([
             [0.010989010989011, 0.009615384615385, 0.006328492935636, 0.01427590266876 , 0.033333333333333,
              0.029166666666667, 0.019196428571429, 0.043303571428571, 0.005631868131868, 0.004927884615385,
@@ -356,6 +357,21 @@ class BboxerTests(BaseTestCase):
 
         ret = self.bboxer.get_intersection(
             TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_intersection__with_diff_number_of_bbs(self):
+        image_id, image_path = self.dataset.preview(self.dataset.images())
+        assert image_id == 12
+        raw_ret = np.array([
+            [0.002297297297297, 0.007274774774775, 0.007563304375804, 0.002008767696268, 0.012702702702703,
+            0.040225225225225, 0.041820624195624, 0.011107303732304, 0.015            , 0.0475           ,
+            0.049383928571429, 0.013116071428571, 0.003380791505792, 0.01070583976834 , 0.01113045108246 ,
+            0.002956180191671]])
+        im = open_image(image_path)
+        pascal_bbs = self.dataset.get_annotations()[image_id]['bbs']
+
+        ret = self.bboxer.get_intersection(pascal_bbs, im)
 
         self.assert_arr_equals(ret, raw_ret)
 

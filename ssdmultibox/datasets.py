@@ -198,7 +198,7 @@ class Bboxer:
     def get_intersection(self, bbs, im):
         # returns the i part of IoU scaled [0,1]
         bbs = self.scaled_fastai_bbs(bbs, im)
-        bbs16 = np.reshape(np.tile(bbs, 16), (2,16,4))
+        bbs16 = np.reshape(np.tile(bbs, 16), (-1,16,4))
         anchor_corners = self.anchor_corners()
         intersect = np.abs(np.maximum(
             anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
