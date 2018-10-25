@@ -274,7 +274,7 @@ class Bboxer:
         neg_idx = np.nonzero(1-pos)[:,0]
         gt_cats[neg_idx] = 20
         gt_cats = self.one_hot_encode(gt_cats, NUM_CLASSES)[:,:-1]
-        return gt_bbs, gt_cats
+        return np.reshape(gt_bbs, (-1)), np.reshape(gt_cats, (-1))
 
     @staticmethod
     def one_hot_encode(gt_cats, num_classes):

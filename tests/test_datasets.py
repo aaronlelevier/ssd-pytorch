@@ -42,8 +42,10 @@ TEST_GT_CATS_ONE_HOT_ENCODED = np.array([
     [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
 
 TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = TEST_GT_CATS_ONE_HOT_ENCODED[:,:-1]
+# format as 1d to match the Model preds format
+TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = np.reshape(TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG, (-1))
 
-TEST_GT_BBS_224 = [
+TEST_GT_BBS_224 = np.array([
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
@@ -59,7 +61,9 @@ TEST_GT_BBS_224 = [
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
-    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002]]
+    [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002]])
+# format as 1d to match the Model preds format
+TEST_GT_BBS_224 = np.reshape(TEST_GT_BBS_224, (-1))
 
 
 class BaseTestCase(unittest.TestCase):
@@ -437,9 +441,9 @@ class BboxerTests(BaseTestCase):
             TEST_PASCAL_BBS, TEST_CATS, im)
 
         self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
-        assert ret_gt_bbs.shape == (16,4)
+        assert ret_gt_bbs.shape == (64,)
         self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
-        assert ret_gt_cats.shape == (16, 20)
+        assert ret_gt_cats.shape == (320,)
 
     def test_one_hot_encode(self):
         ret = self.bboxer.one_hot_encode(TEST_GT_CATS, NUM_CLASSES)
