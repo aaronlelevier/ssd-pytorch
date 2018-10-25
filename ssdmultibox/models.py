@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch import nn
+from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import models
 
@@ -44,9 +44,17 @@ def train():
     dataset = TrainPascalDataset(grid_size=4)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=0)
 
+    # optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
     # process
     item = next(iter(dataloader))
     image_ids, ims, bbs, cats = item
+
+    # zero the parameter gradients
+    optimizer.zero_grad()
+
+    # forward pass
     outputs = model(ims)
 
     return outputs

@@ -261,7 +261,7 @@ class Bboxer:
                 the cost
             im: (2d list): of HWC raw pascal im
         Returns:
-            bbs (2d list), cats (1d list)
+            bbs (1d list) - every 4 items matches the cat, cats (1d list)
         """
         gt_overlap, gt_idx = self.get_gt_overlap_and_idx(bbs, im)
         bbs = np.multiply(self.scaled_fastai_bbs(bbs, im), SIZE)
@@ -273,8 +273,7 @@ class Bboxer:
         pos = gt_overlap > THRESH
         neg_idx = np.nonzero(1-pos)[:,0]
         gt_cats[neg_idx] = 20
-        gt_cats = self.one_hot_encode(gt_cats, NUM_CLASSES)[:,:-1]
-        return np.reshape(gt_bbs, (-1)), np.reshape(gt_cats, (-1))
+        return np.reshape(gt_bbs, (-1)), gt_cats
 
     @staticmethod
     def one_hot_encode(gt_cats, num_classes):
@@ -288,6 +287,13 @@ class Bboxer:
             (2d list): shape = (len(gt_cats), num_classes)
         """
         return np.eye(num_classes)[gt_cats]
+
+    def one_hot_encode_no_bg(self, gt_cats, num_classes):
+        """
+        Returns the one-hot encoded cats with the bg cat sliced off
+        because we want to disregard the bg cat in the loss func
+        """
+        return self.one_hot_encode(gt_cats, num_classes)[:,:-1]
 
     @staticmethod
     def pascal_bbs(bbs):

@@ -42,8 +42,8 @@ TEST_GT_CATS_ONE_HOT_ENCODED = np.array([
     [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
 
 TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = TEST_GT_CATS_ONE_HOT_ENCODED[:,:-1]
-# format as 1d to match the Model preds format
-TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = np.reshape(TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG, (-1))
+
+TEST_GT_CATS_DENSE = np.array([20., 20., 20., 20., 20., 12., 20., 14., 20., 20., 20., 20., 20., 20., 20., 20.])
 
 TEST_GT_BBS_224 = np.array([
     [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002],
@@ -101,7 +101,7 @@ class PascalDatasetTests(BaseTestCase):
         assert ret_image_id == TEST_IMAGE_ID
         assert ret_im.shape == (3, SIZE, SIZE)
         self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
-        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
+        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_DENSE)
 
     def test_data(self):
         ret = self.dataset.data()
@@ -442,13 +442,20 @@ class BboxerTests(BaseTestCase):
 
         self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
         assert ret_gt_bbs.shape == (64,)
-        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
-        assert ret_gt_cats.shape == (320,)
+        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_DENSE)
+        assert ret_gt_cats.shape == (16,)
 
     def test_one_hot_encode(self):
         ret = self.bboxer.one_hot_encode(TEST_GT_CATS, NUM_CLASSES)
 
+        assert ret.shape == (16, 21)
         self.assert_arr_equals(ret, TEST_GT_CATS_ONE_HOT_ENCODED)
+
+    def test_one_hot_encode_no_bg(self):
+        ret = self.bboxer.one_hot_encode_no_bg(TEST_GT_CATS, NUM_CLASSES)
+
+        assert ret.shape == (16, 20)
+        self.assert_arr_equals(ret, TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG)
 
     def test_pascal_bbs(self):
         raw_ret = np.array([
