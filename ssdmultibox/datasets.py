@@ -344,3 +344,11 @@ class Bboxer:
             bbs (2d list): fastai encoded bbs
         """
         return np.array([bbs[:,1],bbs[:,0],bbs[:,3]-bbs[:,1]+1,bbs[:,2]-bbs[:,0]+1]).T
+
+    @staticmethod
+    def scaled_pascal_bbs(bbs, im):
+        "Returns scaled pascal bbs scaled [0,1]"
+        pascal_bbs = np.array(bbs)
+        im_w = im.shape[1]
+        im_h = im.shape[0]
+        return np.divide(pascal_bbs, [im_w, im_h, im_w, im_h])

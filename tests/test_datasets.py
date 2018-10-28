@@ -10,7 +10,7 @@ from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset
 # show full precision for debugging or else `np.isclose` won't work!
 np.set_printoptions(precision=15)
 
-SIZE = 224
+SIZE = 300
 
 NUM_CLASSES = 21
 
@@ -78,8 +78,7 @@ class BaseTestCase(unittest.TestCase):
 class PascalDatasetTests(BaseTestCase):
 
     def setUp(self):
-        grid_size = 4
-        self.dataset = TrainPascalDataset(grid_size)
+        self.dataset = TrainPascalDataset()
         # so we don't have to build the entire annotations cache
         self.dataset.get_annotations()
 
@@ -87,7 +86,7 @@ class PascalDatasetTests(BaseTestCase):
         assert isinstance(self.dataset, PascalDataset)
 
     def test_pascal_json(self):
-        dataset = PascalDataset(grid_size=4)
+        dataset = PascalDataset()
 
         with pytest.raises(NotImplementedError):
             dataset.pascal_json
@@ -100,8 +99,23 @@ class PascalDatasetTests(BaseTestCase):
 
         assert ret_image_id == TEST_IMAGE_ID
         assert ret_im.shape == (3, SIZE, SIZE)
-        self.assert_arr_equals(ret_gt_bbs, TEST_GT_BBS_224)
-        self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_DENSE)
+        # bbs
+        assert len(ret_gt_bbs) == 6
+        assert [len(x[0]) for x in ret_gt_bbs] == [
+            5776,
+            1444,
+            400,
+            100,
+            36,
+            4]
+        # cats
+        assert len(ret_gt_cats) == 6
+        assert [len(x[0]) for x in ret_gt_cats if isinstance(x[0], np.ndarray)] == [
+            1444,
+            361,
+            100,
+            25,
+            9]
 
     def test_data(self):
         ret = self.dataset.data()
@@ -284,8 +298,7 @@ class PascalDatasetTests(BaseTestCase):
 class TrainPascalDatasetTests(BaseTestCase):
 
     def setUp(self):
-        grid_size = 4
-        self.dataset = TrainPascalDataset(grid_size)
+        self.dataset = TrainPascalDataset()
 
     def test_pascal_json(self):
         assert self.dataset.pascal_json == 'pascal_train2007.json'
@@ -294,9 +307,8 @@ class TrainPascalDatasetTests(BaseTestCase):
 class BboxerTests(BaseTestCase):
 
     def setUp(self):
-        grid_size = 4
-        self.bboxer = Bboxer(grid_size)
-        self.dataset = TrainPascalDataset(grid_size)
+        self.bboxer = Bboxer()
+        self.dataset = TrainPascalDataset()
 
     def test_anchor_centers(self):
         raw_ret = [
@@ -617,3 +629,14 @@ class BboxerTests(BaseTestCase):
         ret = self.bboxer.pascal_bbs(fastai_bbs)
 
         self.assert_arr_equals(ret, raw_ret)
+
+    def test_scaled_pascal_bbs(self):
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.scaled_pascal_bbs(TEST_PASCAL_BBS, im)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.383333333333333, 0.167582417582418, 0.197916666666667, 0.379120879120879],
+            [0.185416666666667, 0.211538461538462, 0.654166666666667, 0.711538461538462]]
+        )
