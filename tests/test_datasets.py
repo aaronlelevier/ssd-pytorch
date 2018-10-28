@@ -423,7 +423,35 @@ class BboxerTests(BaseTestCase):
         im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret = self.bboxer.get_intersection(
-            TEST_PASCAL_BBS, im)
+            TEST_PASCAL_BBS, im, grid_size=4, aspect_ratio=(1.,1.))
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_intersection_for_grid_size_3(self):
+        # has 2 bbs to calculate the "intersection" for
+        raw_ret = np.array([
+            [0.008287545787546, 0.032064909297052, 0.014897850165707, 0.010445283882784, 0.040413300736961,
+             0.018776641265481, 0.006221382783883, 0.024070826247166, 0.011183676194837],
+            [0.018015491452991, 0.040598290598291, 0.020516636141636, 0.049305555555556, 0.111111111111111,
+             0.056150793650794, 0.037267008165446, 0.08398199023199 , 0.042440898635095]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_intersection(
+            TEST_PASCAL_BBS, im, grid_size=3, aspect_ratio=(1.,1.))
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_intersection_for_grid_size_3_and_aspect_ratio_2(self):
+        # has 2 bbs to calculate the "intersection" for
+        raw_ret = np.array([
+            [0.016620879120879, 0.064306972789116, 0.029878008895866, 0.01873282967033 , 0.072478210034014,
+             0.033674491431188, 0.002111950549451, 0.008171237244898, 0.003796482535322],
+            [0.042668269230769, 0.096153846153846, 0.048592032967033, 0.091973824786325, 0.207264957264957,
+             0.104742826617827, 0.061919785943223, 0.139537545787546, 0.070516295460492]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_intersection(
+            TEST_PASCAL_BBS, im, grid_size=3, aspect_ratio=(2.,1.))
 
         self.assert_arr_equals(ret, raw_ret)
 
@@ -432,9 +460,9 @@ class BboxerTests(BaseTestCase):
         assert image_id == 12
         raw_ret = np.array([
             [0.002297297297297, 0.007274774774775, 0.007563304375804, 0.002008767696268, 0.012702702702703,
-            0.040225225225225, 0.041820624195624, 0.011107303732304, 0.015            , 0.0475           ,
-            0.049383928571429, 0.013116071428571, 0.003380791505792, 0.01070583976834 , 0.01113045108246 ,
-            0.002956180191671]])
+             0.040225225225225, 0.041820624195624, 0.011107303732304, 0.015            , 0.0475           ,
+             0.049383928571429, 0.013116071428571, 0.003380791505792, 0.01070583976834 , 0.01113045108246 ,
+             0.002956180191671]])
         im = open_image(image_path)
         pascal_bbs = self.dataset.get_annotations()[image_id]['bbs']
 
@@ -454,9 +482,14 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(ret, raw_ret)
 
     def test_get_ancb_area(self):
-        ret = self.bboxer.get_ancb_area()
+        ret = self.bboxer.get_ancb_area(4)
 
         assert ret == 0.0625
+
+    def test_get_ancb_area_for_grid_size_2(self):
+        ret = self.bboxer.get_ancb_area(2)
+
+        assert ret == 0.25
 
     def test_get_bbs_area(self):
         raw_ret = np.array([0.07247821003401361, 0.4593877755429095])
@@ -478,7 +511,19 @@ class BboxerTests(BaseTestCase):
             0.027500446995359]])
         im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
-        ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im)
+        ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im, grid_size=4, aspect_ratio=(1.,1.))
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_get_iou_grid_size_3_and_aspect_ratio_2(self):
+        raw_ret = np.array([
+            [0.090532929787025, 0.350276216437894, 0.162743719021914, 0.102036597518227, 0.394784454683618,
+            0.183422931253004, 0.011503667731203, 0.044508238245724, 0.02067921223109 ],
+            [0.074791152496403, 0.168543442245416, 0.085174632420451, 0.161216484270025, 0.363304753284564,
+            0.183598652106306, 0.10853620820609 , 0.244588638210908, 0.123604615381584]])
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = self.bboxer.get_iou(TEST_PASCAL_BBS, im, grid_size=3, aspect_ratio=(2.,1.))
 
         self.assert_arr_equals(ret, raw_ret)
 
@@ -486,7 +531,7 @@ class BboxerTests(BaseTestCase):
         im = open_image(self.dataset.images()[TEST_IMAGE_ID])
 
         ret_gt_overlap, ret_gt_idx = self.bboxer.get_gt_overlap_and_idx(
-            TEST_PASCAL_BBS, im)
+            TEST_PASCAL_BBS, im, grid_size=4, aspect_ratio=(1.,1.))
 
         self.assert_arr_equals(
             ret_gt_overlap,
@@ -495,6 +540,21 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(
             ret_gt_idx,
             [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+        )
+
+    def test_get_gt_overlap_and_idx_grid_size_3_and_aspect_ratio_2(self):
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret_gt_overlap, ret_gt_idx = self.bboxer.get_gt_overlap_and_idx(
+            TEST_PASCAL_BBS, im, grid_size=3, aspect_ratio=(2.,1.))
+
+        self.assert_arr_equals(
+            ret_gt_overlap,
+            [0.0905, 0.3503, 0.1627, 0.1612, 1.9900, 0.1836, 0.1085, 0.2446, 0.1236]
+        )
+        self.assert_arr_equals(
+            ret_gt_idx,
+            [0, 0, 0, 1, 1, 1, 1, 1, 1]
         )
 
     def test_get_gt_bbs_and_cats(self):
@@ -507,6 +567,32 @@ class BboxerTests(BaseTestCase):
         assert ret_gt_bbs.shape == (64,)
         self.assert_arr_equals(ret_gt_cats, TEST_GT_CATS_DENSE)
         assert ret_gt_cats.shape == (16,)
+
+    def test_get_gt_bbs_and_cats_grid_size_3_and_aspect_ratio_2(self):
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+        grid_size = 3
+
+        ret_gt_bbs, ret_gt_cats = self.bboxer.get_gt_bbs_and_cats(
+            TEST_PASCAL_BBS, TEST_CATS, im, grid_size=grid_size, aspect_ratio=(2.,1.))
+
+        # bbs
+        assert ret_gt_bbs.shape == (36,), f'should be equal to 4 * {grid_size**2}'
+        self.assert_arr_equals(
+            ret_gt_bbs,
+            [ 37.53846153846153,  85.86666666666667, 121.46153846153845, 129.20000000000002,  37.53846153846153,
+            85.86666666666667, 121.46153846153845, 129.20000000000002,  37.53846153846153,  85.86666666666667,
+            121.46153846153845, 129.20000000000002,  47.38461538461539,  41.53333333333333, 205.76923076923077,
+            187.06666666666666,  47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666,
+            47.38461538461539,  41.53333333333333, 205.76923076923077, 187.06666666666666,  47.38461538461539,
+            41.53333333333333, 205.76923076923077, 187.06666666666666,  47.38461538461539,  41.53333333333333,
+            205.76923076923077, 187.06666666666666,  47.38461538461539,  41.53333333333333, 205.76923076923077,
+            187.06666666666666])
+
+        # cats
+        assert ret_gt_cats.shape == (9,)
+        self.assert_arr_equals(
+            ret_gt_cats,
+            [20, 20, 20, 20, 12, 20, 20, 20, 20])
 
     def test_one_hot_encode(self):
         ret = self.bboxer.one_hot_encode(TEST_GT_CATS, NUM_CLASSES)

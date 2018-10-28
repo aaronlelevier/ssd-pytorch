@@ -212,15 +212,16 @@ class Bboxer:
         ])
 
     # TODO: grid_size and aspect_ratio param needed
-    def get_intersection(self, bbs, im):
+    def get_intersection(self, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
         # returns the i part of IoU scaled [0,1]
         bbs = self.scaled_fastai_bbs(bbs, im)
+        bbs_count = grid_size*grid_size
 
         # TODO: 16 is harcoded here and should be based upon grid_size
-        bbs16 = np.reshape(np.tile(bbs, 16), (-1,16,4))
+        bbs16 = np.reshape(np.tile(bbs, bbs_count), (-1,bbs_count,4))
 
         # TODO: aspect_ratio needs to bee added
-        anchor_corners = self.anchor_corners(grid_size=4)
+        anchor_corners = self.anchor_corners(grid_size, aspect_ratio)
         intersect = np.abs(np.maximum(
             anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
         return intersect[:,:,0] * intersect[:,:,1]
@@ -242,22 +243,24 @@ class Bboxer:
             bbs[:,3]+bbs[:,1]-(1/SIZE),
             bbs[:,2]+bbs[:,0]-(1/SIZE)]).T
 
-    def get_ancb_area(self):
+    def get_ancb_area(self, grid_size):
         "Returns the [0,1] normalized area of a single anchor box"
-        return 1. / np.square(self.grid_size)
+        return 1. / np.square(grid_size)
 
     def get_bbs_area(self, bbs, im):
         "Returns a np.array of the [0,1] normalized bbs area"
         bbs = self.scaled_fastai_bbs(bbs, im)
         return np.abs(bbs[:,0]-bbs[:,2])*np.abs(bbs[:,1]-bbs[:,3])
 
-    def get_iou(self, bbs, im):
-        intersect = self.get_intersection(bbs, im)
-        bbs_union = self.get_ancb_area() + self.get_bbs_area(bbs, im)
+    def get_iou(self, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
+        "Returns a 2d arr of the IoU for each obj with size [obj count, feature cell count]"
+        intersect = self.get_intersection(bbs, im, grid_size, aspect_ratio)
+        bbs_union = self.get_ancb_area(grid_size) + self.get_bbs_area(bbs, im)
         return (intersect.T / bbs_union).T
 
-    def get_gt_overlap_and_idx(self, bbs, im):
-        overlaps = torch.tensor(self.get_iou(bbs, im))
+    def get_gt_overlap_and_idx(self, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
+        "Returns a 1d arr for all feature cells with the gt overlaps and gt_idx"
+        overlaps = torch.tensor(self.get_iou(bbs, im, grid_size, aspect_ratio))
         _, prior_idx = overlaps.max(1)
         gt_overlap, gt_idx = overlaps.max(0)
         gt_overlap[prior_idx] = 1.99
@@ -266,10 +269,9 @@ class Bboxer:
             gt_idx[o] = i
         return gt_overlap, gt_idx
 
-    def get_gt_bbs_and_cats(self, bbs, cats, im):
+    def get_gt_bbs_and_cats(self, bbs, cats, im, grid_size=4, aspect_ratio=(1.,1.)):
         """
-        Returns bbs per anchor box gt labels and
-        1 hot encoded category per anchor box
+        Returns bbs per anchor box gt labels and dense gt_cats
 
         Args:
             bbs (2d list): of pascal bbs int coordinates
@@ -280,11 +282,13 @@ class Bboxer:
                 are no objects identified, but it's behavior isn't guided
                 towards predicting the 'bg' everytime just to naively minimize
                 the cost
-            im: (2d list): of HWC raw pascal im
+            im (2d list): of HWC raw pascal im
+            grid_size (int): feature map dimen
+            aspect_ratio (tuple): w,h aspect ratio
         Returns:
             bbs (1d list) - every 4 items matches the cat, cats (1d list)
         """
-        gt_overlap, gt_idx = self.get_gt_overlap_and_idx(bbs, im)
+        gt_overlap, gt_idx = self.get_gt_overlap_and_idx(bbs, im, grid_size, aspect_ratio)
         bbs = np.multiply(self.scaled_fastai_bbs(bbs, im), SIZE)
         cats = np.array(cats)
         gt_bbs = bbs[gt_idx]
