@@ -175,21 +175,28 @@ class Bboxer:
     def __init__(self, grid_size, k=1):
         self.grid_size = grid_size
 
-    def anchors(self):
-        anc_grid = 4
-        k = 1
-        anc_offset = 1/(anc_grid*2)
-        anc_x = np.repeat(np.linspace(anc_offset, 1-anc_offset, anc_grid), 4)
-        anc_y = np.tile(np.linspace(anc_offset, 1-anc_offset, anc_grid), 4)
-        anc_centers = np.tile(np.stack([anc_x,anc_y], axis=1), (k,1))
-        anc_w = 1/anc_grid
-        anc_h = 1/anc_grid
-        anc_sizes = np.array([[anc_w, anc_h] for i in range(anc_grid*anc_grid)])
+    def anchors(self, grid_size):
+        anc_centers = self.anchor_centers(grid_size)
+        anc_sizes = self.anchor_sizes(grid_size)
         return np.array(
             np.concatenate([anc_centers, anc_sizes], axis=1), dtype=np.float)
 
+    def anchor_centers(self, grid_size):
+        "Returns the x,y center coordinates for all anchor boxes"
+        anc_offset = 1/(grid_size*2)
+        anc_x = np.repeat(np.linspace(anc_offset, 1-anc_offset, grid_size), grid_size)
+        anc_y = np.tile(np.linspace(anc_offset, 1-anc_offset, grid_size), grid_size)
+        anc_ctrs = np.stack([anc_x,anc_y], axis=1)
+        return anc_ctrs
+
+    def anchor_sizes(self, grid_size):
+        "Returns the anchor sizes of a 1:1 aspect ratio"
+        return np.reshape(
+            np.repeat([1/grid_size,1/grid_size], grid_size*grid_size), (-1,2))
+
+    # TODO: needs grid_size param
     def anchor_corners(self):
-        anchors = self.anchors()
+        anchors = self.anchors(grid_size=4)
         return self.hw2corners(anchors[:,:2], anchors[:,2:])
 
     def hw2corners(self, center, hw):
