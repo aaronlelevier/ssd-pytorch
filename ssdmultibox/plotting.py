@@ -28,6 +28,7 @@ def draw_text(ax, xy, txt, sz=14):
     draw_outline(text, 1)
 
 
+    # TODO: grid_size param needed
 def plot_single(dataset, idx, ax=None):
     "uses the Dataset idx to select a training sample and plot it"
     image_id, im, gt_bbs, gt_cats = dataset[idx]
@@ -37,7 +38,7 @@ def plot_single(dataset, idx, ax=None):
 
     resized_image = np.transpose(im, (1,2,0))
     ax = show_img(resized_image, ax=ax)
-    for bbox in dataset.bboxer.anchor_corners():
+    for bbox in dataset.bboxer.anchor_corners(grid_size=4):
         draw_rect(ax, bbox*224, edgecolor='red')
     for bbox, cat in zip(dataset.bboxer.pascal_bbs(gt_idx_bbs), gt_idx_cats):
         draw_rect(ax, bbox)

@@ -175,38 +175,52 @@ class Bboxer:
     def __init__(self, grid_size, k=1):
         self.grid_size = grid_size
 
-    def anchors(self, grid_size):
-        anc_centers = self.anchor_centers(grid_size)
-        anc_sizes = self.anchor_sizes(grid_size)
-        return np.array(
-            np.concatenate([anc_centers, anc_sizes], axis=1), dtype=np.float)
-
     def anchor_centers(self, grid_size):
         "Returns the x,y center coordinates for all anchor boxes"
         anc_offset = 1/(grid_size*2)
         anc_x = np.repeat(np.linspace(anc_offset, 1-anc_offset, grid_size), grid_size)
         anc_y = np.tile(np.linspace(anc_offset, 1-anc_offset, grid_size), grid_size)
-        anc_ctrs = np.stack([anc_x,anc_y], axis=1)
-        return anc_ctrs
+        return np.stack([anc_x,anc_y], axis=1)
 
-    def anchor_sizes(self, grid_size):
-        "Returns the anchor sizes of a 1:1 aspect ratio"
-        return np.reshape(
-            np.repeat([1/grid_size,1/grid_size], grid_size*grid_size), (-1,2))
+    def anchor_sizes(self, grid_size, aspect_ratio=(1.,1.)):
+        "Returns a 2d arr of the archor sizes per the aspect_ratio"
+        sk = 1/grid_size
+        w = sk * aspect_ratio[0]
+        h = sk * aspect_ratio[1]
+        return np.reshape(np.repeat([w, h], grid_size*grid_size), (2,-1)).T
 
-    # TODO: needs grid_size param
-    def anchor_corners(self):
-        anchors = self.anchors(grid_size=4)
-        return self.hw2corners(anchors[:,:2], anchors[:,2:])
+    def anchor_corners(self, grid_size, aspect_ratio=(1.,1.)):
+        "Return 2d arr where each item is [x1,y1,x2,y2] of top left and bottom right corners"
+        centers = self.anchor_centers(grid_size)
+        hw = self.anchor_sizes(grid_size, aspect_ratio)
+        return self.hw2corners(centers, hw)
 
     def hw2corners(self, center, hw):
+        "Return anchor corners based upon center and hw"
         return np.concatenate([center-hw/2, center+hw/2], axis=1)
 
+    def aspect_ratios(self, grid_size):
+        "Returns the aspect ratio"
+        sk = 1. / grid_size
+        return np.array([
+            (1., 1.),
+            (2., 1.),
+            (3., 1.),
+            (1., 2.),
+            (1., 3.),
+            (np.sqrt(sk*sk+1), 1.)
+        ])
+
+    # TODO: grid_size and aspect_ratio param needed
     def get_intersection(self, bbs, im):
         # returns the i part of IoU scaled [0,1]
         bbs = self.scaled_fastai_bbs(bbs, im)
+
+        # TODO: 16 is harcoded here and should be based upon grid_size
         bbs16 = np.reshape(np.tile(bbs, 16), (-1,16,4))
-        anchor_corners = self.anchor_corners()
+
+        # TODO: aspect_ratio needs to bee added
+        anchor_corners = self.anchor_corners(grid_size=4)
         intersect = np.abs(np.maximum(
             anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
         return intersect[:,:,0] * intersect[:,:,1]

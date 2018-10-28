@@ -298,30 +298,6 @@ class BboxerTests(BaseTestCase):
         self.bboxer = Bboxer(grid_size)
         self.dataset = TrainPascalDataset(grid_size)
 
-    def test_anchors(self):
-        raw_ret = [
-            [0.1250, 0.1250, 0.2500, 0.2500],
-            [0.1250, 0.3750, 0.2500, 0.2500],
-            [0.1250, 0.6250, 0.2500, 0.2500],
-            [0.1250, 0.8750, 0.2500, 0.2500],
-            [0.3750, 0.1250, 0.2500, 0.2500],
-            [0.3750, 0.3750, 0.2500, 0.2500],
-            [0.3750, 0.6250, 0.2500, 0.2500],
-            [0.3750, 0.8750, 0.2500, 0.2500],
-            [0.6250, 0.1250, 0.2500, 0.2500],
-            [0.6250, 0.3750, 0.2500, 0.2500],
-            [0.6250, 0.6250, 0.2500, 0.2500],
-            [0.6250, 0.8750, 0.2500, 0.2500],
-            [0.8750, 0.1250, 0.2500, 0.2500],
-            [0.8750, 0.3750, 0.2500, 0.2500],
-            [0.8750, 0.6250, 0.2500, 0.2500],
-            [0.8750, 0.8750, 0.2500, 0.2500]
-        ]
-
-        ret = self.bboxer.anchors(grid_size=4)
-
-        self.assert_arr_equals(ret, raw_ret)
-
     def test_anchor_centers(self):
         raw_ret = [
             [0.166666666666667, 0.166666666666667],
@@ -354,6 +330,22 @@ class BboxerTests(BaseTestCase):
 
         self.assert_arr_equals(ret, raw_ret)
 
+    def test_anchor_sizes_for_aspect_ratio(self):
+        raw_ret = [
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333],
+            [0.666666666666667, 0.333333333333333]]
+
+        ret = self.bboxer.anchor_sizes(grid_size=3, aspect_ratio=(2.,1.))
+
+        self.assert_arr_equals(ret, raw_ret)
+
     def test_anchor_corners(self):
         raw_ret = [
             [0.0000, 0.0000, 0.2500, 0.2500],
@@ -374,7 +366,46 @@ class BboxerTests(BaseTestCase):
             [0.7500, 0.7500, 1.0000, 1.0000]
         ]
 
-        ret = self.bboxer.anchor_corners()
+        ret = self.bboxer.anchor_corners(grid_size=4)
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_anchor_corners_for_aspect_ratio(self):
+        raw_ret = [
+            [-0.125,  0.   ,  0.375,  0.25 ],
+            [-0.125,  0.25 ,  0.375,  0.5  ],
+            [-0.125,  0.5  ,  0.375,  0.75 ],
+            [-0.125,  0.75 ,  0.375,  1.   ],
+            [ 0.125,  0.   ,  0.625,  0.25 ],
+            [ 0.125,  0.25 ,  0.625,  0.5  ],
+            [ 0.125,  0.5  ,  0.625,  0.75 ],
+            [ 0.125,  0.75 ,  0.625,  1.   ],
+            [ 0.375,  0.   ,  0.875,  0.25 ],
+            [ 0.375,  0.25 ,  0.875,  0.5  ],
+            [ 0.375,  0.5  ,  0.875,  0.75 ],
+            [ 0.375,  0.75 ,  0.875,  1.   ],
+            [ 0.625,  0.   ,  1.125,  0.25 ],
+            [ 0.625,  0.25 ,  1.125,  0.5  ],
+            [ 0.625,  0.5  ,  1.125,  0.75 ],
+            [ 0.625,  0.75 ,  1.125,  1.   ]]
+
+        ret = self.bboxer.anchor_corners(grid_size=4, aspect_ratio=(2.,1.))
+
+        self.assert_arr_equals(ret, raw_ret)
+
+    def test_aspect_ratios(self):
+        grid_size = 4
+        sk = 1./grid_size
+        raw_ret = np.array([
+            (1., 1.),
+            (2., 1.),
+            (3., 1.),
+            (1., 2.),
+            (1., 3.),
+            (np.sqrt(sk*sk+1), 1.)
+        ])
+
+        ret = self.bboxer.aspect_ratios(grid_size)
 
         self.assert_arr_equals(ret, raw_ret)
 
