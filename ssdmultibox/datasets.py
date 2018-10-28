@@ -8,12 +8,14 @@ from torch.utils.data import Dataset
 
 from ssdmultibox import config
 
-SIZE = 224
+SIZE = 300
 
 NUM_CLASSES = 21
 
 # IoU threshold
 THRESH = 0.5
+
+FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
 
 IMAGES = 'images'
 ANNOTATIONS = 'annotations'
@@ -37,9 +39,9 @@ IMAGE_PATH = 'image_path'
 
 class PascalDataset(Dataset):
 
-    def __init__(self, grid_size, k=1):
+    def __init__(self):
         self.filepath = config.DATADIR
-        self.bboxer = Bboxer(grid_size, k)
+        self.bboxer = Bboxer()
 
     @property
     def pascal_json(self):
@@ -60,7 +62,7 @@ class PascalDataset(Dataset):
         im = open_image(image_paths[image_id])
         chw_im = self.scaled_im_by_size_and_chw_format(im)
 
-        gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats(bbs, cats, im)
+        gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats_for_all(bbs, cats, im)
 
         return image_id, chw_im, gt_bbs, gt_cats
 
@@ -172,9 +174,6 @@ class TrainPascalDataset(PascalDataset):
 
 class Bboxer:
 
-    def __init__(self, grid_size, k=1):
-        self.grid_size = grid_size
-
     def anchor_centers(self, grid_size):
         "Returns the x,y center coordinates for all anchor boxes"
         anc_offset = 1/(grid_size*2)
@@ -211,16 +210,11 @@ class Bboxer:
             (np.sqrt(sk*sk+1), 1.)
         ])
 
-    # TODO: grid_size and aspect_ratio param needed
     def get_intersection(self, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
         # returns the i part of IoU scaled [0,1]
         bbs = self.scaled_fastai_bbs(bbs, im)
         bbs_count = grid_size*grid_size
-
-        # TODO: 16 is harcoded here and should be based upon grid_size
         bbs16 = np.reshape(np.tile(bbs, bbs_count), (-1,bbs_count,4))
-
-        # TODO: aspect_ratio needs to bee added
         anchor_corners = self.anchor_corners(grid_size, aspect_ratio)
         intersect = np.abs(np.maximum(
             anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
@@ -269,6 +263,21 @@ class Bboxer:
             gt_idx[o] = i
         return gt_overlap, gt_idx
 
+    def get_gt_bbs_and_cats_for_all(self, bbs, cats, im):
+        "Returns all gt_cats and gt_bbs for all grid sizes and aspect ratios"
+        all_bbs = []
+        all_cats = []
+        for grid_size in FEATURE_MAPS:
+            ar_bbs = []
+            ar_cats = []
+            for aspect_ratio in self.aspect_ratios(grid_size):
+                gt_bbs, gt_cats = self.get_gt_bbs_and_cats(bbs, cats, im, grid_size, aspect_ratio)
+                ar_bbs.append(gt_bbs)
+                ar_cats.append(gt_cats)
+            all_bbs.append(ar_bbs)
+            all_cats.append(ar_cats)
+        return all_bbs, all_cats
+
     def get_gt_bbs_and_cats(self, bbs, cats, im, grid_size=4, aspect_ratio=(1.,1.)):
         """
         Returns bbs per anchor box gt labels and dense gt_cats
@@ -296,8 +305,14 @@ class Bboxer:
         # the previous line will set the 0 ith class as the gt, so
         # set it to bg if it doesn't meet the IoU threshold
         pos = gt_overlap > THRESH
-        neg_idx = np.nonzero(1-pos)[:,0]
-        gt_cats[neg_idx] = 20
+        try:
+            neg_idx = np.nonzero(1-pos)[:,0]
+        except IndexError:
+            # skip if no negative indexes
+            pass
+        else:
+            gt_cats[neg_idx] = 20
+
         return np.reshape(gt_bbs, (-1)), gt_cats
 
     @staticmethod
