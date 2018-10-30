@@ -344,3 +344,8 @@ class Bboxer:
         im_w = im.shape[1]
         im_h = im.shape[0]
         return np.divide(pascal_bbs, [im_w, im_h, im_w, im_h])
+
+    @staticmethod
+    def fastai_bb_to_pascal_bb(a):
+        "Converts a fastai formatted bb to a pascal bb"
+        return np.array([a[1],a[0],a[3]-a[1]+1,a[2]-a[0]+1])
