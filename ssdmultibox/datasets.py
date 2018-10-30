@@ -155,15 +155,6 @@ class PascalDataset(Dataset):
         resized_image = cv2.resize(im, (SIZE, SIZE)) # HW
         return np.transpose(resized_image, (2, 0, 1)) # CHW
 
-    def scaled_bbs_by_size(self, bbs):
-        """
-        Returns an resized `bbs` by the SIZE
-
-        Args:
-            bbs (1d list): normalized size of [0,1]
-        """
-        return np.multiply(bbs, SIZE)
-
 
 class TrainPascalDataset(PascalDataset):
 
@@ -216,8 +207,9 @@ class Bboxer:
         bbs_count = grid_size*grid_size
         bbs16 = np.reshape(np.tile(bbs, bbs_count), (-1,bbs_count,4))
         anchor_corners = self.anchor_corners(grid_size, aspect_ratio)
-        intersect = np.abs(np.maximum(
-            anchor_corners[:,:2], bbs16[:,:,:2]) - np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]))
+        intersect = np.minimum(
+            np.maximum(anchor_corners[:,:2], bbs16[:,:,:2]) - \
+            np.minimum(anchor_corners[:,2:], bbs16[:,:,2:]), 0)
         return intersect[:,:,0] * intersect[:,:,1]
 
     def scaled_fastai_bbs(self, bbs, im):
