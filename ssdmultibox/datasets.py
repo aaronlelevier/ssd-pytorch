@@ -189,7 +189,8 @@ class Bboxer:
         "Return anchor corners based upon center and hw"
         return np.concatenate([center-hw/2, center+hw/2], axis=1)
 
-    def aspect_ratios(self, grid_size):
+    @staticmethod
+    def aspect_ratios(grid_size):
         "Returns the aspect ratio"
         sk = 1. / grid_size
         return np.array([
@@ -256,7 +257,15 @@ class Bboxer:
         return gt_overlap, gt_idx
 
     def get_gt_bbs_and_cats_for_all(self, bbs, cats, im):
-        "Returns all gt_cats and gt_bbs for all grid sizes and aspect ratios"
+        """
+        Returns all gt_cats and gt_bbs for all grid sizes and aspect ratios
+
+        Dimensions are as follows. Each item is (bbs, cats):
+        ar - aspect ratio
+        fm - feature map
+        [ [[fm1 ar1], [fm1 ar2], ...],
+          [[fm2 ar1], [fm2 ar2], ...]]
+        """
         all_bbs = []
         all_cats = []
         for grid_size in FEATURE_MAPS:
