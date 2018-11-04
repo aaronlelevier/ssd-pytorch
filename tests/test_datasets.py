@@ -5,14 +5,10 @@ import pytest
 from fastai.dataset import open_image
 
 from ssdmultibox import config
-from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset
+from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset, SIZE, NUM_CLASSES
 
 # show full precision for debugging or else `np.isclose` won't work!
 np.set_printoptions(precision=15)
-
-SIZE = 300
-
-NUM_CLASSES = 21
 
 TRAIN_DATA_COUNT = 2501
 
