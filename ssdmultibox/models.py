@@ -1,11 +1,10 @@
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision.models import VGG, vgg16_bn
+from torchvision.models import VGG
 from torchvision.models.vgg import cfg, model_urls
 
-from ssdmultibox.datasets import TrainPascalDataset, NUM_CLASSES
+from ssdmultibox.datasets import NUM_CLASSES
 
 
 class OutConv(nn.Module):
@@ -13,11 +12,11 @@ class OutConv(nn.Module):
         super().__init__()
         self.oconv1 = nn.Conv2d(nin, 4, 3, padding=1)
         self.oconv2 = nn.Conv2d(nin, NUM_CLASSES, 3, padding=1)
-        
+
     def forward(self, x):
         return [self.flatten_conv(self.oconv1(x)),
                 self.flatten_conv(self.oconv2(x))]
-    
+
     def flatten_conv(self, x):
         bs,nf,gx,gy = x.size()
         x = x.permute(0,2,3,1).contiguous()
@@ -30,7 +29,7 @@ class OutCustomHead(nn.Module):
         self.conv512 = OutConv(512)
         self.conv1024 = OutConv(1024)
         self.conv256 = OutConv(256)
-        
+
         self.block_map = {
             'block4': self.conv512,
             'block7': self.conv1024,
@@ -39,7 +38,7 @@ class OutCustomHead(nn.Module):
             'block10': self.conv256,
             'block11': self.conv256
         }
-        
+
     def forward(self, blocks):
         ret = []
         aspect_ratio_count = 6
@@ -128,7 +127,7 @@ class VGGBase(VGG):
     def forward(self, x):
         feat_layers=['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
         blocks = {b:None for b in feat_layers}
-        
+
         for i, feature in enumerate(self.features):
             x = feature(x)
             if i == 32:
@@ -151,18 +150,3 @@ def vgg16_bn(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg16_bn']))
     return model
-
-
-def train():
-    dataset = TrainPascalDataset()
-    dataloader = DataLoader(dataset, batch_size=4, num_workers=0)
-
-    # model
-    vgg_base = vgg16_bn(pretrained=True)
-    model = SSDModel(vgg_base)
-
-    # 1 iteration of data
-    item = next(iter(dataloader))
-    image_ids, ims, gt_bbs, gt_cats = item
-
-    return model(ims)
