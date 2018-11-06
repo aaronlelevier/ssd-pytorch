@@ -40,7 +40,7 @@ IMAGE_PATH = 'image_path'
 class PascalDataset(Dataset):
 
     def __init__(self):
-        self.filepath = config.DATADIR
+        self.filepath = config.DATA_DIR
         self.bboxer = Bboxer()
 
     @property

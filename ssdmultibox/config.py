@@ -2,9 +2,13 @@ import os
 import platform
 from pathlib import Path
 
-DATADIR = None
-home_dir = os.path.expanduser('~')
-if platform.system() == 'Darwin': # MAC
-    DATADIR = Path(f'/{home_dir}/data/VOC2007/trainval/VOCdevkit/VOC2007/')
+HOME_DIR = os.path.expanduser('~')
 
-IMAGE_PATH = Path(DATADIR/'JPEGImages/')
+if platform.system() == 'Darwin': # MAC
+    DATA_DIR = Path('/Users/aaron/data/VOC2007/trainval/VOCdevkit/VOC2007/')
+elif HOME_DIR == '/home/paperspace':
+    DATA_DIR = Path('/home/paperspace/data/pascal')
+else: # kaggle
+    DATA_DIR = Path('../input/pascal/pascal')
+
+IMAGE_PATH = Path(DATA_DIR/'JPEGImages/')

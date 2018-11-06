@@ -9,6 +9,6 @@ class ConfigTests(unittest.TestCase):
     def test_data_dir(self):
         home_dir = os.path.expanduser('~')
 
-        ret = config.DATADIR
+        ret = config.DATA_DIR
 
-        assert str(ret) == f'/{home_dir}/data/VOC2007/trainval/VOCdevkit/VOC2007'
+        assert str(ret) == f'{home_dir}/data/VOC2007/trainval/VOCdevkit/VOC2007'

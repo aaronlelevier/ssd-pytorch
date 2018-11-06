@@ -5,7 +5,8 @@ import pytest
 from fastai.dataset import open_image
 
 from ssdmultibox import config
-from ssdmultibox.datasets import Bboxer, PascalDataset, TrainPascalDataset, SIZE, NUM_CLASSES
+from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
+                                  TrainPascalDataset)
 
 # show full precision for debugging or else `np.isclose` won't work!
 np.set_printoptions(precision=15)
@@ -212,7 +213,7 @@ class PascalDatasetTests(BaseTestCase):
 
         assert isinstance(ret, dict)
         assert self.dataset.preview(ret) == \
-            (12,  f'{config.DATADIR}/JPEGImages/000012.jpg')
+            (12,  f'{config.DATA_DIR}/JPEGImages/000012.jpg')
 
     def test_get_filenames(self):
         ret = self.dataset.get_filenames()
