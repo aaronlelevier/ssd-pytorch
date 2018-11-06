@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ssdmultibox.datasets import NUM_CLASSES, SIZE
+from ssdmultibox.datasets import NUM_CLASSES, SIZE, device
 
 
 class CatsBCELoss(nn.Module):
@@ -62,9 +62,9 @@ class SSDLoss(nn.Module):
         return (1/n) * (conf + (self.alpha*loc))
 
     def _matched_gt_cats(self, gt_cats, preds):
-        n = torch.tensor(0, dtype=torch.float32)
+        n = torch.tensor(0, dtype=torch.float32).to(device)
         for fm_idx in range(len(preds)):
             for ar_idx in range(len(preds[fm_idx])):
                 gt_idxs = gt_cats[fm_idx][ar_idx] != 20
-                n += gt_idxs.sum().type(torch.float32)
+                n += gt_idxs.sum().type(torch.float32).to(device)
         return n
