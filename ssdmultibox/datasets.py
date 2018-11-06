@@ -8,6 +8,8 @@ from torch.utils.data import Dataset
 
 from ssdmultibox import config
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 SIZE = 300
 
 NUM_CLASSES = 21
@@ -61,6 +63,7 @@ class PascalDataset(Dataset):
         image_paths = self.images()
         im = open_image(image_paths[image_id])
         chw_im = self.scaled_im_by_size_and_chw_format(im)
+        chw_im = torch.tensor(chw_im, dtype=torch.float32).to(device)
 
         gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats_for_all(bbs, cats, im)
 
@@ -273,6 +276,10 @@ class Bboxer:
             ar_cats = []
             for aspect_ratio in self.aspect_ratios(grid_size):
                 gt_bbs, gt_cats = self.get_gt_bbs_and_cats(bbs, cats, im, grid_size, aspect_ratio)
+                # put on the correct device
+                gt_bbs = torch.tensor(gt_bbs, dtype=torch.float32).to(device)
+                gt_cats = torch.tensor(gt_cats, dtype=torch.float32).to(device)
+                # populate list(s)
                 ar_bbs.append(gt_bbs)
                 ar_cats.append(gt_cats)
             all_bbs.append(ar_bbs)

@@ -1,5 +1,6 @@
 import unittest
 
+import torch
 import numpy as np
 import pytest
 from fastai.dataset import open_image
@@ -85,7 +86,7 @@ class PascalDatasetTests(BaseTestCase):
             4]
         # cats
         assert len(ret_gt_cats) == 6
-        assert [len(x[0]) for x in ret_gt_cats if isinstance(x[0], np.ndarray)] == [
+        assert [x[0].shape[0] for x in ret_gt_cats if isinstance(x[0], torch.Tensor) and x[0].shape] == [
             1444,
             361,
             100,
