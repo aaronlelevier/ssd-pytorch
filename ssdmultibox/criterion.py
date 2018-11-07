@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ssdmultibox.datasets import NUM_CLASSES, SIZE, device
+from ssdmultibox.datasets import NUM_CLASSES, SIZE, Bboxer, device
 
 
 class CatsBCELoss(nn.Module):
@@ -19,13 +19,9 @@ class CatsBCELoss(nn.Module):
         return loss
 
     def _cats_loss(self, y, yhat):
-        try:
-            cats_label = torch.eye(NUM_CLASSES)[y][:,:,:-1]
-        except IndexError:
-            # final preds only have one feature_map cell, so this is needed
-            cats_label = torch.eye(NUM_CLASSES)[y][:,:-1].reshape(4, -1, 20)
-
-        cats_preds = yhat.reshape(4, -1, NUM_CLASSES)[:,:,:-1]
+        batch_size = y.shape[0]
+        cats_label = Bboxer.one_hot_encoding(y)[:,:,:-1]
+        cats_preds = yhat.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
         gt_idxs = y != 20
         return F.binary_cross_entropy_with_logits(cats_label[gt_idxs], cats_preds[gt_idxs])
 
@@ -44,8 +40,9 @@ class BbsL1Loss(nn.Module):
         return loss
 
     def _bbs_loss(self, y, yhat, gt_idxs):
-        y = torch.tensor(y.reshape(4, -1, 4)[gt_idxs], dtype=torch.float32)
-        return (((y / SIZE) - yhat.reshape(4, -1, 4)[gt_idxs]).abs()).mean()
+        batch_size = y.shape[0]
+        y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32)
+        return (((y / SIZE) - yhat.reshape(batch_size, -1, 4)[gt_idxs]).abs()).mean()
 
 
 class SSDLoss(nn.Module):
@@ -56,9 +53,9 @@ class SSDLoss(nn.Module):
         self.cats_loss = CatsBCELoss()
 
     def forward(self, gt_bbs, gt_cats, preds):
-        n = self._matched_gt_cats(gt_cats, preds)
         conf = self.cats_loss(gt_cats, preds)
         loc = self.bbs_loss(gt_bbs, gt_cats, preds)
+        n = self._matched_gt_cats(gt_cats, preds)
         return (1/n) * (conf + (self.alpha*loc))
 
     def _matched_gt_cats(self, gt_cats, preds):

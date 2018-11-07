@@ -278,7 +278,7 @@ class Bboxer:
                 gt_bbs, gt_cats = self.get_gt_bbs_and_cats(bbs, cats, im, grid_size, aspect_ratio)
                 # put on the correct device
                 gt_bbs = torch.tensor(gt_bbs, dtype=torch.float32).to(device)
-                gt_cats = torch.tensor(gt_cats, dtype=torch.float32).to(device)
+                gt_cats = torch.tensor(gt_cats, dtype=torch.uint8).to(device)
                 # populate list(s)
                 ar_bbs.append(gt_bbs)
                 ar_cats.append(gt_cats)
@@ -365,3 +365,14 @@ class Bboxer:
     def fastai_bb_to_pascal_bb(a):
         "Converts a fastai formatted bb to a pascal bb"
         return np.array([a[1],a[0],a[3]-a[1]+1,a[2]-a[0]+1])
+
+    @staticmethod
+    def one_hot_encoding(y):
+        if len(y.shape) == 1:
+            y = y.unsqueeze(1)
+        y_onehot = torch.FloatTensor(y.shape[0], y.shape[1], NUM_CLASSES)
+        y_onehot.zero_()
+        y = y.type(torch.long)
+        # expand from shape (4, 1444) to (4, 1444, 1) for ex to work w/ `scatter_`
+        y = y.unsqueeze(-1)
+        return y_onehot.scatter_(2, y, 1)
