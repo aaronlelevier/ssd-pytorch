@@ -11,4 +11,7 @@ class ConfigTests(unittest.TestCase):
 
         ret = config.DATA_DIR
 
-        assert str(ret) == f'{home_dir}/data'
+        if home_dir.startswith('/Users/alelevier'):
+            assert str(ret) == f'{home_dir}/data'
+        elif home_dir.startswith('/Users/aaron'):
+            assert str(ret) == f'{home_dir}/data/VOC2007/trainval/VOCdevkit/VOC2007'

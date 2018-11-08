@@ -370,7 +370,7 @@ class Bboxer:
     def one_hot_encoding(y):
         if len(y.shape) == 1:
             y = y.unsqueeze(1)
-        y_onehot = torch.FloatTensor(y.shape[0], y.shape[1], NUM_CLASSES)
+        y_onehot = torch.FloatTensor(y.shape[0], y.shape[1], NUM_CLASSES).to(device)
         y_onehot.zero_()
         y = y.type(torch.long)
         # expand from shape (4, 1444) to (4, 1444, 1) for ex to work w/ `scatter_`

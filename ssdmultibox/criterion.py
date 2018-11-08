@@ -12,7 +12,7 @@ class CatsBCELoss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_cats = targets
-        loss = torch.tensor(0, dtype=torch.float32)
+        loss = torch.tensor(0, dtype=torch.float32).to(device)
 
         for fm_idx in range(len(preds)):
             for ar_idx in range(len(preds[fm_idx])):
@@ -35,7 +35,7 @@ class BbsL1Loss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        loss =  torch.tensor(0, dtype=torch.float32)
+        loss =  torch.tensor(0, dtype=torch.float32).to(device)
         for fm_idx in range(len(preds)):
             for ar_idx in range(len(preds[fm_idx])):
                 gt_idxs = gt_cats[fm_idx][ar_idx] != 20
@@ -45,7 +45,7 @@ class BbsL1Loss(nn.Module):
 
     def _bbs_loss(self, y, yhat, gt_idxs):
         batch_size = y.shape[0]
-        y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32)
+        y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32).to(device)
         return F.smooth_l1_loss(
             input=yhat.reshape(batch_size, -1, 4)[gt_idxs], target=(y / SIZE))
 
