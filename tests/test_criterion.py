@@ -30,24 +30,30 @@ class CriterionTests(unittest.TestCase):
 
     def test_bbs_loss(self):
         bbs_criterion = criterion.BbsL1Loss()
+        inputs = self.preds
+        targets = (self.gt_bbs, self.gt_cats)
 
-        ret = bbs_criterion(self.gt_bbs, self.gt_cats, self.preds)
+        ret = bbs_criterion(inputs, targets)
 
         assert isinstance(ret, torch.Tensor)
         assert ret.item() > 0
 
     def test_cats_loss(self):
         cats_criterion = criterion.CatsBCELoss()
+        inputs = self.preds
+        targets = self.gt_cats
 
-        ret = cats_criterion(self.gt_cats, self.preds)
+        ret = cats_criterion(inputs, targets)
 
         assert isinstance(ret, torch.Tensor)
         assert ret.item() > 0
 
     def test_ssd_loss(self):
         ssd_criterion = criterion.SSDLoss()
+        inputs = self.preds
+        targets = (self.gt_bbs, self.gt_cats)
 
-        ret = ssd_criterion(self.gt_bbs, self.gt_cats, self.preds)
+        ret = ssd_criterion(inputs, targets)
 
         assert isinstance(ret, torch.Tensor)
         assert ret.item() > 0

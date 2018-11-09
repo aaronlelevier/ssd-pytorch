@@ -3,10 +3,10 @@ import json
 import cv2
 import numpy as np
 import torch
-from fastai.dataset import open_image
 from torch.utils.data import Dataset
 
 from ssdmultibox import config
+from ssdmultibox.utils import open_image
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

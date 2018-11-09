@@ -9,7 +9,9 @@ class CatsBCELoss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, gt_cats, preds):
+    def forward(self, inputs, targets):
+        preds = inputs
+        gt_cats = targets
         loss = torch.tensor(0, dtype=torch.float32)
 
         for fm_idx in range(len(preds)):
@@ -30,7 +32,9 @@ class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, gt_bbs, gt_cats, preds):
+    def forward(self, inputs, targets):
+        preds = inputs
+        gt_bbs, gt_cats = targets
         loss =  torch.tensor(0, dtype=torch.float32)
         for fm_idx in range(len(preds)):
             for ar_idx in range(len(preds[fm_idx])):
@@ -42,7 +46,8 @@ class BbsL1Loss(nn.Module):
     def _bbs_loss(self, y, yhat, gt_idxs):
         batch_size = y.shape[0]
         y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32)
-        return (((y / SIZE) - yhat.reshape(batch_size, -1, 4)[gt_idxs]).abs()).mean()
+        return F.smooth_l1_loss(
+            input=yhat.reshape(batch_size, -1, 4)[gt_idxs], target=(y / SIZE))
 
 
 class SSDLoss(nn.Module):
@@ -52,16 +57,18 @@ class SSDLoss(nn.Module):
         self.bbs_loss = BbsL1Loss()
         self.cats_loss = CatsBCELoss()
 
-    def forward(self, gt_bbs, gt_cats, preds):
-        conf = self.cats_loss(gt_cats, preds)
-        loc = self.bbs_loss(gt_bbs, gt_cats, preds)
-        n = self._matched_gt_cats(gt_cats, preds)
+    def forward(self, inputs, targets):
+        preds = inputs
+        gt_bbs, gt_cats = targets
+        conf = self.cats_loss(preds, gt_cats)
+        loc = self.bbs_loss(preds, (gt_bbs, gt_cats))
+        n = self._matched_gt_cats(gt_cats)
         return (1/n) * (conf + (self.alpha*loc))
 
-    def _matched_gt_cats(self, gt_cats, preds):
+    def _matched_gt_cats(self, gt_cats):
         n = torch.tensor(0, dtype=torch.float32).to(device)
-        for fm_idx in range(len(preds)):
-            for ar_idx in range(len(preds[fm_idx])):
+        for fm_idx in range(len(gt_cats)):
+            for ar_idx in range(len(gt_cats[fm_idx])):
                 gt_idxs = gt_cats[fm_idx][ar_idx] != 20
                 n += gt_idxs.sum().type(torch.float32).to(device)
         return n

@@ -1,11 +1,11 @@
 import os
-import platform
 from pathlib import Path
+
 
 HOME_DIR = os.path.expanduser('~')
 
-if platform.system() == 'Darwin': # MAC
-    DATA_DIR = Path('/Users/aaron/data/VOC2007/trainval/VOCdevkit/VOC2007/')
+if HOME_DIR.startswith('/Users'):
+    DATA_DIR = Path(f'{HOME_DIR}/data/')
 elif HOME_DIR == '/home/paperspace':
     DATA_DIR = Path('/home/paperspace/data/pascal')
 else: # kaggle

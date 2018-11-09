@@ -26,24 +26,23 @@ class OutConv(nn.Module):
 class OutCustomHead(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv512 = OutConv(512)
-        self.conv1024 = OutConv(1024)
-        self.conv256 = OutConv(256)
+
+        self.aspect_ratio_count = 6
 
         self.block_map = {
-            'block4': self.conv512,
-            'block7': self.conv1024,
-            'block8': self.conv512,
-            'block9': self.conv256,
-            'block10': self.conv256,
-            'block11': self.conv256
+            'block4': [OutConv(512) for _ in range(self.aspect_ratio_count)],
+            'block7': [OutConv(1024) for _ in range(self.aspect_ratio_count)],
+            'block8': [OutConv(512) for _ in range(self.aspect_ratio_count)],
+            'block9': [OutConv(256) for _ in range(self.aspect_ratio_count)],
+            'block10': [OutConv(256) for _ in range(self.aspect_ratio_count)],
+            'block11': [OutConv(256) for _ in range(self.aspect_ratio_count)]
         }
 
     def forward(self, blocks):
         ret = []
-        aspect_ratio_count = 6
         for k,v in blocks.items():
-            ret.append([self.block_map[k](v) for _ in range(aspect_ratio_count)])
+            ret.append([self.block_map[k][i](v)
+                        for i in range(self.aspect_ratio_count)])
         return ret
 
 

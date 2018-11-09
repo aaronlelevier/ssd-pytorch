@@ -3,11 +3,11 @@ import unittest
 import numpy as np
 import pytest
 import torch
-from fastai.dataset import open_image
 
 from ssdmultibox import config
 from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
                                   TrainPascalDataset)
+from ssdmultibox.utils import open_image
 
 # show full precision for debugging or else `np.isclose` won't work!
 np.set_printoptions(precision=15)
