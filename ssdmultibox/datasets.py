@@ -166,6 +166,13 @@ class TrainPascalDataset(PascalDataset):
         return 'pascal_train2007.json'
 
 
+class ValPascalDataset(PascalDataset):
+
+    @property
+    def pascal_json(self):
+        return 'pascal_val2007.json'
+
+
 class Bboxer:
 
     def anchor_centers(self, grid_size):

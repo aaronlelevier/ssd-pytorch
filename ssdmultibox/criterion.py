@@ -31,6 +31,7 @@ class CatsBCELoss(nn.Module):
 class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
+        self.smooth_l1_loss = nn.SmoothL1Loss()
 
     def forward(self, inputs, targets):
         preds = inputs
@@ -46,7 +47,7 @@ class BbsL1Loss(nn.Module):
     def _bbs_loss(self, y, yhat, gt_idxs):
         batch_size = y.shape[0]
         y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32).to(device)
-        return F.smooth_l1_loss(
+        return self.smooth_l1_loss(
             input=yhat.reshape(batch_size, -1, 4)[gt_idxs], target=(y / SIZE))
 
 
