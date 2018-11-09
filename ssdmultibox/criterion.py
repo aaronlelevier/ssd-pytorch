@@ -25,13 +25,13 @@ class CatsBCELoss(nn.Module):
         cats_label = Bboxer.one_hot_encoding(y)[:,:,:-1]
         cats_preds = yhat.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
         gt_idxs = y != 20
-        return F.binary_cross_entropy_with_logits(cats_label[gt_idxs], cats_preds[gt_idxs])
+        return F.binary_cross_entropy_with_logits(
+            cats_label[gt_idxs], cats_preds[gt_idxs], reduction='sum')
 
 
 class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.smooth_l1_loss = nn.SmoothL1Loss()
 
     def forward(self, inputs, targets):
         preds = inputs
@@ -47,8 +47,9 @@ class BbsL1Loss(nn.Module):
     def _bbs_loss(self, y, yhat, gt_idxs):
         batch_size = y.shape[0]
         y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32).to(device)
-        return self.smooth_l1_loss(
-            input=yhat.reshape(batch_size, -1, 4)[gt_idxs], target=(y / SIZE))
+        inputs = yhat.reshape(batch_size, -1, 4)[gt_idxs]
+        targets = (y / SIZE)
+        return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
 
 class SSDLoss(nn.Module):
