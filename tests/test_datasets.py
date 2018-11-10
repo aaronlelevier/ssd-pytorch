@@ -640,19 +640,3 @@ class BboxerTests(BaseTestCase):
             ret,
             [ 93.              ,  86.48648648648648, 117.6             , 156.75675675675674]
         )
-
-    def test_one_hot_encoding(self):
-        y = torch.LongTensor(4,9).random_() % NUM_CLASSES
-        assert y.shape == (4, 9)
-
-        ret = self.bboxer.one_hot_encoding(y)
-
-        assert ret.shape == (4, 9, 21)
-
-    def test_one_hot_encoding_unsqueezes_if_input_is_1d(self):
-        y = torch.LongTensor(4).random_() % NUM_CLASSES
-        assert y.shape == (4,)
-
-        ret = self.bboxer.one_hot_encoding(y)
-
-        assert ret.shape == (4, 1, 21)

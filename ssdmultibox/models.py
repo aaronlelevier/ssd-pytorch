@@ -26,24 +26,32 @@ class OutConv(nn.Module):
 class OutCustomHead(nn.Module):
     def __init__(self):
         super().__init__()
-
         self.aspect_ratio_count = 6
-
-        self.block_map = {
-            'block4': [OutConv(512) for _ in range(self.aspect_ratio_count)],
-            'block7': [OutConv(1024) for _ in range(self.aspect_ratio_count)],
-            'block8': [OutConv(512) for _ in range(self.aspect_ratio_count)],
-            'block9': [OutConv(256) for _ in range(self.aspect_ratio_count)],
-            'block10': [OutConv(256) for _ in range(self.aspect_ratio_count)],
-            'block11': [OutConv(256) for _ in range(self.aspect_ratio_count)]
-        }
+        self._setup_outconvs()
 
     def forward(self, blocks):
+        """
+        Returns a 2d list that's shape (6,6) of OutConv outputs.
+        Each 0d item is a 6 item list of the outputs for a single
+        aspect ratio. There's 6 lists of 6, so 6 feature map blocks with
+        6 aspect ratio predictions each.
+        """
         ret = []
         for k,v in blocks.items():
-            ret.append([self.block_map[k][i](v)
-                        for i in range(self.aspect_ratio_count)])
+            ar_ret = []
+            for i in range(self.aspect_ratio_count):
+                # NOTE: maybe shouldn't be accessing the `_modules` private OrderedDict here ...
+                fm_ar_outconv = self._modules[f'{k}_{i}']
+                ar_ret.append(fm_ar_outconv(v))
+            ret.append(ar_ret)
         return ret
+
+    def _setup_outconvs(self):
+        block_names = ['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
+        block_sizes = [512, 1024, 512, 256, 256, 256]
+        for i, name in enumerate(block_names):
+            for j, ar in enumerate(range(self.aspect_ratio_count)):
+                setattr(self, f'{block_names[i]}_{j}', OutConv(block_sizes[i]))
 
 
 class BlocksCustomHead(nn.Module):
@@ -88,10 +96,10 @@ class BlocksCustomHead(nn.Module):
 
 
 class SSDModel(nn.Module):
-    def __init__(self, vgg_base):
+    def __init__(self):
         # features are really layers
         super().__init__()
-        self.vgg_base = vgg_base
+        self.vgg_base = self._create_vgg_base()
         self.blocks_model = BlocksCustomHead()
         self.out_conv_head = OutCustomHead()
 
@@ -99,6 +107,12 @@ class SSDModel(nn.Module):
         x = self.vgg_base(x)
         x = self.blocks_model(x)
         return self.out_conv_head(x)
+
+    def _create_vgg_base(self):
+        vgg_base = vgg16_bn(pretrained=True)
+        for layer in vgg_base.parameters():
+            layer.requires_grad = False
+        return vgg_base
 
 
 def make_layers(cfg, batch_norm=False):

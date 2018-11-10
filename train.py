@@ -1,9 +1,11 @@
+import time
+
 from torch import optim
 from torch.utils.data import DataLoader
 
 from ssdmultibox.criterion import SSDLoss
-from ssdmultibox.datasets import TrainPascalDataset
-from ssdmultibox.models import SSDModel, vgg16_bn
+from ssdmultibox.datasets import TrainPascalDataset, device
+from ssdmultibox.models import SSDModel
 
 EPOCHS = 1
 BATCH = 4
@@ -16,17 +18,11 @@ def main():
     dataloader = DataLoader(dataset, batch_size=BATCH, num_workers=NUM_WORKERS)
 
     # model
-    vgg_base = vgg16_bn(pretrained=True)
-
-    # freeze base network
-    for layer in vgg_base.parameters():
-        layer.requires_grad = False
-
-    model = SSDModel(vgg_base)
-
+    model = SSDModel()
+    model = model.to(device)
     criterion = SSDLoss()
-
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    current_time = time.time()
 
     for epoch in range(EPOCHS):
         for i, (image_ids, ims, gt_bbs, gt_cats) in enumerate(dataloader):
@@ -35,16 +31,17 @@ def main():
 
             # forward pass
             preds = model(ims)
-            loss = criterion(gt_bbs, gt_cats, preds)
+            loss = criterion(preds, (gt_bbs, gt_cats))
 
             # backward pass
             loss.backward()
             optimizer.step()
 
             # stats
-            print(i, 'loss:', loss)
+            print(i, 'loss:', loss, 'time:', time.time() - current_time)
+            current_time = time.time()
 
-            # test run for 5 steps  
+            # test run for 5 steps
             if i == 4:
                 break
         break

@@ -1,32 +1,13 @@
 import unittest
 
 import torch
-from torch.utils.data import DataLoader
 
 from ssdmultibox import criterion
-from ssdmultibox.datasets import TrainPascalDataset
-from ssdmultibox.models import SSDModel, vgg16_bn
+from ssdmultibox.datasets import NUM_CLASSES
+from tests.mixins import ModelAndDatasetSetupMixin
 
 
-class CriterionTests(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        # data
-        dataset = TrainPascalDataset()
-        dataloader = DataLoader(dataset, batch_size=10, num_workers=0)
-        image_ids, ims, cls.gt_bbs, cls.gt_cats = next(iter(dataloader))
-        # model
-        vgg_base = vgg16_bn(pretrained=True)
-        for layer in vgg_base.parameters():
-            layer.requires_grad = False
-        model = SSDModel(vgg_base)
-        cls.preds = model(ims)
-
-    def setUp(self):
-        self.gt_bbs = self.__class__.gt_bbs
-        self.gt_cats = self.__class__.gt_cats
-        self.preds = self.__class__.preds
+class CriterionTests(ModelAndDatasetSetupMixin, unittest.TestCase):
 
     def test_bbs_loss(self):
         bbs_criterion = criterion.BbsL1Loss()
@@ -57,3 +38,19 @@ class CriterionTests(unittest.TestCase):
 
         assert isinstance(ret, torch.Tensor)
         assert ret.item() > 0
+
+    def test_one_hot_encoding(self):
+        y = torch.LongTensor(4,9).random_() % NUM_CLASSES
+        assert y.shape == (4, 9)
+
+        ret = criterion.CatsBCELoss.one_hot_encoding(y)
+
+        assert ret.shape == (4, 9, 21)
+
+    def test_one_hot_encoding_unsqueezes_if_input_is_1d(self):
+        y = torch.LongTensor(4).random_() % NUM_CLASSES
+        assert y.shape == (4,)
+
+        ret = criterion.CatsBCELoss.one_hot_encoding(y)
+
+        assert ret.shape == (4, 1, 21)

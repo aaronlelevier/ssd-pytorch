@@ -372,14 +372,3 @@ class Bboxer:
     def fastai_bb_to_pascal_bb(a):
         "Converts a fastai formatted bb to a pascal bb"
         return np.array([a[1],a[0],a[3]-a[1]+1,a[2]-a[0]+1])
-
-    @staticmethod
-    def one_hot_encoding(y):
-        if len(y.shape) == 1:
-            y = y.unsqueeze(1)
-        y_onehot = torch.FloatTensor(y.shape[0], y.shape[1], NUM_CLASSES).to(device)
-        y_onehot.zero_()
-        y = y.type(torch.long)
-        # expand from shape (4, 1444) to (4, 1444, 1) for ex to work w/ `scatter_`
-        y = y.unsqueeze(-1)
-        return y_onehot.scatter_(2, y, 1)
