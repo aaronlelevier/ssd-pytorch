@@ -2,7 +2,6 @@ import unittest
 
 import numpy as np
 import pytest
-import torch
 
 from ssdmultibox import config
 from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
@@ -86,7 +85,7 @@ class PascalDatasetTests(BaseTestCase):
             4]
         # cats
         assert len(ret_gt_cats) == 6
-        assert [x[0].shape[0] for x in ret_gt_cats if isinstance(x[0], torch.Tensor) and x[0].shape] == [
+        assert [x[0].shape[0] for x in ret_gt_cats if isinstance(x[0], np.ndarray) and x[0].shape] == [
             1444,
             361,
             100,

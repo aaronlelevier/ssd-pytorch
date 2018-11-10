@@ -8,8 +8,8 @@ from ssdmultibox.datasets import TrainPascalDataset, device
 from ssdmultibox.models import SSDModel
 
 EPOCHS = 1
-BATCH = 4
-NUM_WORKERS = 0
+BATCH = 8
+NUM_WORKERS = 4
 
 
 def main():
@@ -26,6 +26,9 @@ def main():
 
     for epoch in range(EPOCHS):
         for i, (image_ids, ims, gt_bbs, gt_cats) in enumerate(dataloader):
+            # put data on device
+            ims, gt_bbs, gt_cats = dataset.to_device(ims, gt_bbs, gt_cats)
+
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -42,7 +45,7 @@ def main():
             current_time = time.time()
 
             # test run for 5 steps
-            if i == 4:
+            if i == 0:
                 break
         break
 

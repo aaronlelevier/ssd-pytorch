@@ -63,11 +63,22 @@ class PascalDataset(Dataset):
         image_paths = self.images()
         im = open_image(image_paths[image_id])
         chw_im = self.scaled_im_by_size_and_chw_format(im)
-        chw_im = torch.tensor(chw_im, dtype=torch.float32).to(device)
 
         gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats_for_all(bbs, cats, im)
 
         return image_id, chw_im, gt_bbs, gt_cats
+
+    @staticmethod
+    def to_device(ims, gt_bbs, gt_cats):
+        """
+        Utility function to put the dataset outputs on the correct device
+        """
+        # put data on device
+        ims = torch.tensor(ims, dtype=torch.float32).to(device)
+        # put on the correct device
+        gt_bbs = [[torch.tensor(ar, dtype=torch.float32).to(device) for ar in fm] for fm in gt_bbs]
+        gt_cats = [[torch.tensor(ar, dtype=torch.uint8).to(device) for ar in fm] for fm in gt_cats]
+        return ims, gt_bbs, gt_cats
 
     def data(self):
         if not self._data:
@@ -283,9 +294,6 @@ class Bboxer:
             ar_cats = []
             for aspect_ratio in self.aspect_ratios(grid_size):
                 gt_bbs, gt_cats = self.get_gt_bbs_and_cats(bbs, cats, im, grid_size, aspect_ratio)
-                # put on the correct device
-                gt_bbs = torch.tensor(gt_bbs, dtype=torch.float32).to(device)
-                gt_cats = torch.tensor(gt_cats, dtype=torch.uint8).to(device)
                 # populate list(s)
                 ar_bbs.append(gt_bbs)
                 ar_cats.append(gt_cats)
