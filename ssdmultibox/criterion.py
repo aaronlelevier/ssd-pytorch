@@ -22,12 +22,15 @@ class CatsBCELoss(nn.Module):
 
     def _cats_loss(self, y, yhat):
         batch_size = y.shape[0]
-        cats_label = self.one_hot_encoding(y)[:,:,:-1]
-        cats_preds = yhat.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
+        if len(y.shape) == 1:
+            cats_preds = yhat.reshape(batch_size, NUM_CLASSES)[:,:-1]
+        else:
+            cats_preds = yhat.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
         gt_idxs = y != 20
-        return F.binary_cross_entropy_with_logits(
-            cats_label[gt_idxs], cats_preds[gt_idxs], reduction='sum')
+        return F.cross_entropy(
+            cats_preds[gt_idxs], y[gt_idxs].type(torch.long), reduction='sum')
 
+    # NOTE: not in use ...
     @staticmethod
     def one_hot_encoding(y):
         if len(y.shape) == 1:
@@ -73,9 +76,11 @@ class SSDLoss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        conf = self.cats_loss(preds, gt_cats)
-        loc = self.bbs_loss(preds, (gt_bbs, gt_cats))
+        conf = self.cats_loss(preds, gt_cats).abs()
+        loc = self.bbs_loss(preds, (gt_bbs, gt_cats)).abs()
         n = self._matched_gt_cats(gt_cats)
+        print('cats_loss:', conf.item())
+        print('bbs_loss:', loc.item())
         return (1/n) * (conf + (self.alpha*loc))
 
     def _matched_gt_cats(self, gt_cats):
