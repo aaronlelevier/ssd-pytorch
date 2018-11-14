@@ -263,6 +263,7 @@ class Bboxer:
     def get_iou(self, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
         "Returns a 2d arr of the IoU for each obj with size [obj count, feature cell count]"
         intersect = self.get_intersection(bbs, im, grid_size, aspect_ratio)
+        # TODO: I need to remove the `intersect` from the `bbs_union` var here. this is a bug!
         bbs_union = self.get_ancb_area(grid_size) + self.get_bbs_area(bbs, im)
         return (intersect.T / bbs_union).T
 
