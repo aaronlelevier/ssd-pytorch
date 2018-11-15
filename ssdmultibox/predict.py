@@ -8,6 +8,13 @@ CONF_THRESH = 0.1
 
 class Predict:
 
+    @classmethod
+    def detections_for_single_category(self, cls_id, preds):
+        cats, bbs = cls.get_stacked_bbs_and_cats(preds)
+        item_cats = cats[0]
+        item_bbs = bbs[0]
+        return cls.single_predict(6, item_bbs, item_cats)
+
     @staticmethod
     def get_stacked_bbs_and_cats(preds):
         """
@@ -39,7 +46,7 @@ class Predict:
         return bbs, cats
 
     @classmethod
-    def single_predict(cls, cls_id, item_bbs, item_cats):
+    def single_predict(cls_id, item_bbs, item_cats):
         """
         Returns the NMS detections for a single image
 
@@ -49,7 +56,7 @@ class Predict:
             item_cats (2d array):
                 [feature_maps, 20] one hot encoded category preds
         Returns:
-            tuple ([nms_bbs, 4], [cls_ids])
+            tuple ([nms_bbs, 4], [cls_ids]) or None if no matches
         """
         cls_conf, cls_ids = item_cats.max(1)
         # per cls
@@ -61,11 +68,13 @@ class Predict:
 
         boxes = bbs_gt_conf_thresh[gt_conf_thresh_mask]
         scores = cls_conf_gt_conf_thresh[gt_conf_thresh_mask]
+        # exit if no matches
+        if not scores.sum().item():
+            return
 
         nms_ids, nms_count = cls.nms(boxes, scores)
-        bbs = boxes[nms_ids[:nms_count]]
-        ids = torch.tensor(cls_id).repeat(nms_count)
-        return bbs, ids
+        detected_ids = nms_ids[:nms_count]
+        return boxes[detected_ids], scores[detected_ids]
 
 
     # Original author: Francisco Massa:

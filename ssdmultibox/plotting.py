@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches, patheffects
+from ssdmultibox.utils import open_image
+from ssdmultibox.dataset import Bboxer, SIZE
 
+import cv2
 
 def show_img(im, figsize=None, ax=None):
     if not ax:
@@ -28,7 +31,6 @@ def draw_text(ax, xy, txt, sz=14):
     draw_outline(text, 1)
 
 
-    # TODO: grid_size param needed
 def plot_single(dataset, idx, ax=None):
     "uses the Dataset idx to select a training sample and plot it"
     image_id, im, gt_bbs, gt_cats = dataset[idx]
@@ -50,3 +52,17 @@ def plot_multiple(dataset):
     for i,ax in enumerate(axes.flat):
         plot_single(dataset, i, ax)
     plt.tight_layout()
+
+
+def plot_single_detections(dataset, ids, detections):
+    image_id, im, gt_bbs, gt_cats = dataset[idx]
+    ann = dataset.get_annotations()[image_id]
+    # image
+    im = open_image(ann['image_path'])
+    resized_im = cv2.resize(im, (SIZE, SIZE))
+    ax = show_img(resized_im)
+    # detections
+    if detections:
+        detected_bbs, _ = detections
+        for bb in detected_bbs:
+            draw_rect(ax, Bboxer.fastai_bb_to_pascal_bb(bb*SIZE))
