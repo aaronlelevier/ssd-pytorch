@@ -46,7 +46,7 @@ class Predict:
         return bbs, cats
 
     @classmethod
-    def single_predict(cls_id, item_bbs, item_cats):
+    def single_predict(cls, cls_id, item_bbs, item_cats):
         """
         Returns the NMS detections for a single image
 
@@ -56,7 +56,7 @@ class Predict:
             item_cats (2d array):
                 [feature_maps, 20] one hot encoded category preds
         Returns:
-            tuple ([nms_bbs, 4], [cls_ids]) or None if no matches
+            tuple ([nms_bbs, 4], [scores]) or None if no matches
         """
         cls_conf, cls_ids = item_cats.max(1)
         # per cls

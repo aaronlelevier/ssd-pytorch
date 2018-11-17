@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches, patheffects
 from ssdmultibox.utils import open_image
-from ssdmultibox.dataset import Bboxer, SIZE
+from ssdmultibox.datasets import Bboxer, SIZE
 
 import cv2
 

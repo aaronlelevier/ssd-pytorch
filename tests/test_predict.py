@@ -20,12 +20,10 @@ class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
         item_cats = cats[0]
         item_bbs = bbs[0]
 
-        ret_bbs, ret_ids = Predict.single_predict(cls_id, item_bbs, item_cats)
+        ret_bbs, ret_scores = Predict.single_predict(cls_id, item_bbs, item_cats)
 
         assert len(ret_bbs.shape) == 2
-        assert len(ret_ids.shape) == 1
-        assert ret_bbs.shape[0] == ret_ids.shape[0]
+        assert len(ret_scores.shape) == 1
+        assert ret_bbs.shape[0] == ret_scores.shape[0]
         assert ret_bbs.shape[1] == 4, "4 points p/ bb"
-        assert ret_ids[0] == cls_id
-        assert ret_ids.eq(cls_id).sum() == ret_ids.shape[0], \
-            "all values for ret_ids are the cls_id"
+        assert ret_scores.sum().item() != 0, "pred confidence should always be greater than 0"
