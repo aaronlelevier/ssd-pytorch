@@ -417,8 +417,8 @@ class Bboxer:
         return np.abs(bb[0]-bb[2])*np.abs(bb[1]-bb[3])
 
     @classmethod
-    def single_bb_iou(cls, gt_bb, max_bb):
-        i = cls.single_bb_intersect(gt_bb, max_bb)
+    def single_bb_iou(cls, bb, gt_bb):
+        i = cls.single_bb_intersect(bb, gt_bb)
         # don't forget to remove their overlapping area from the union calc!
-        u = cls.single_bb_area(gt_bb) + cls.single_bb_area(max_bb) - i
+        u = cls.single_bb_area(bb) + cls.single_bb_area(gt_bb) - i
         return i/u
