@@ -9,11 +9,20 @@ CONF_THRESH = 0.1
 class Predict:
 
     @classmethod
-    def detections_for_single_category(self, cls_id, preds):
-        cats, bbs = cls.get_stacked_bbs_and_cats(preds)
-        item_cats = cats[0]
+    def detections_for_single_category(cls, cls_id, preds):
+        """
+        Full predictions for a single class
+
+        Args:
+            cls_id (int): category_id
+            preds: mini-batch preds from model
+        Returns:
+            tuple(bbs, scores) or None
+        """
+        bbs, cats = cls.get_stacked_bbs_and_cats(preds)
         item_bbs = bbs[0]
-        return cls.single_predict(6, item_bbs, item_cats)
+        item_cats = cats[0]
+        return cls.single_predict(cls_id, item_bbs, item_cats)
 
     @staticmethod
     def get_stacked_bbs_and_cats(preds):

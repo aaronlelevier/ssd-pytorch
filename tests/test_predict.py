@@ -1,10 +1,34 @@
 import unittest
+from unittest.mock import patch
 
 from ssdmultibox.predict import Predict
 from tests.mixins import ModelAndDatasetSetupMixin
 
 
 class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
+
+    @patch("ssdmultibox.predict.Predict.single_predict")
+    def test_detections_for_single_category__calls_single_predict(
+            self, mock_single_predict):
+        cls_id = 6
+
+        ret = Predict.detections_for_single_category(cls_id, self.preds)
+
+        assert mock_single_predict.called
+        assert mock_single_predict.call_args[0][0] == cls_id
+
+    def test_detections_for_single_category__returns_correct_shapes(self):
+        cls_id = 12
+
+        ret = Predict.detections_for_single_category(cls_id, self.preds)
+
+        # same shapes from single_predict, need `if` because sometimes
+        # this is none, but if it's detected something, I want check shapes
+        if ret:
+            ret_bbs , ret_scores = ret
+            assert len(ret_bbs.shape) == 2
+            assert len(ret_scores.shape) == 1
+            assert ret_bbs.shape[0] == ret_scores.shape[0]
 
     def test_get_stacked_bbs_and_cats(self):
         ret = Predict.get_stacked_bbs_and_cats(self.preds)
