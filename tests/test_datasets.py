@@ -7,6 +7,7 @@ from ssdmultibox import config
 from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
                                   TrainPascalDataset)
 from ssdmultibox.utils import open_image
+from tests.base import BaseTestCase
 
 # show full precision for debugging or else `np.isclose` won't work!
 np.set_printoptions(precision=15)
@@ -39,15 +40,6 @@ TEST_GT_CATS_ONE_HOT_ENCODED = np.array([
     [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
 
 TEST_GT_CATS_ONE_HOT_ENCODED_NO_BG = TEST_GT_CATS_ONE_HOT_ENCODED[:,:-1]
-
-
-class BaseTestCase(unittest.TestCase):
-
-    def assert_arr_equals(self, ret, raw_ret):
-        assert np.isclose(
-                np.array(ret, dtype=np.float16),
-                np.array(raw_ret, dtype=np.float16)
-            ).all(), f"\nret:\n{ret}\nraw_ret:\n{raw_ret}"
 
 
 class PascalDatasetTests(BaseTestCase):

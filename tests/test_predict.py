@@ -2,9 +2,13 @@ import unittest
 from unittest.mock import patch
 
 import pytest
+import torch
+import numpy as np
 
 from ssdmultibox.predict import Predict
+from ssdmultibox.datasets import Bboxer
 from tests.mixins import ModelAndDatasetSetupMixin
+from tests.base import BaseTestCase
 
 
 class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
@@ -71,3 +75,47 @@ class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
         assert ret_bbs.shape[0] == ret_scores.shape[0]
         assert ret_bbs.shape[1] == 4, "4 points p/ bb"
         assert ret_scores.sum().item() != 0, "pred confidence should always be greater than 0"
+
+
+@pytest.mark.unit
+class PredictUnitTests(BaseTestCase):
+
+    def test_nms__suppresses_overlapping_bb_with_lower_score(self):
+        # item 0 in boxes is the lowest score, with a .8 overlap
+        # with item 1 so it get suppressed
+        a = [0., 0., 5., 10.]
+        b = [0., 0., 4., 10.]
+        c = [5., 5., 10., 10.]
+        assert Bboxer.single_bb_iou(a, b) == .8
+        assert Bboxer.single_bb_iou(a, c) == 0.
+        boxes = torch.tensor([a,b,c])
+        scores = torch.tensor([.1, .2, .3])
+        assert boxes.shape[0] == scores.shape[0]
+
+        ret_keep, ret_count = Predict.nms(boxes, scores)
+
+        self.assert_arr_equals(ret_keep, [2, 1, 0])
+        assert ret_count == 2
+
+    def test_nms__doesnt_suppress_if_under_overlap_thresh(self):
+        # item 0 in boxes is the lowest score, with a .8 overlap
+        # but overlap_thres is .1 so it isn't suppresed
+        a = [0., 0., 5., 10.]
+        b = [0., 0., 4., 10.]
+        c = [5., 5., 10., 10.]
+        overlap = 0.8
+        assert Bboxer.single_bb_iou(a, b) == overlap
+        assert Bboxer.single_bb_iou(a, c) == 0.
+        boxes = torch.tensor([a,b,c])
+        scores = torch.tensor([.1, .2, .3])
+        assert boxes.shape[0] == scores.shape[0]
+
+        # overlap suppresses
+        ret_keep, ret_count = Predict.nms(boxes, scores, overlap=0.79)
+        self.assert_arr_equals(ret_keep, [2, 1, 0])
+        assert ret_count == 2
+
+        # overlap allows
+        ret_keep, ret_count = Predict.nms(boxes, scores, overlap=overlap)
+        self.assert_arr_equals(ret_keep, [2, 1, 0])
+        assert ret_count == 3
