@@ -1,9 +1,9 @@
 import unittest
 
-from tests.mixins import ModelAndDatasetSetupMixin
+from tests.base import ModelAndDatasetBaseTestCase
 
 
-class SSDModelTests(ModelAndDatasetSetupMixin, unittest.TestCase):
+class SSDModelTests(ModelAndDatasetBaseTestCase):
 
     def test_model_feature_map_bbs_output_sizes(self):
         ret = [tuple(self.preds[i][0][0].shape) for i in range(6)]

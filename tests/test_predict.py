@@ -7,11 +7,11 @@ import numpy as np
 
 from ssdmultibox.predict import Predict
 from ssdmultibox.datasets import Bboxer
-from tests.mixins import ModelAndDatasetSetupMixin
+from tests.base import ModelAndDatasetBaseTestCase
 from tests.base import BaseTestCase
 
 
-class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
+class PredictTests(ModelAndDatasetBaseTestCase):
 
     @patch("ssdmultibox.predict.Predict.single_nms")
     def test_single_predict__calls_single_nms(

@@ -4,10 +4,10 @@ import torch
 
 from ssdmultibox import criterion
 from ssdmultibox.datasets import NUM_CLASSES
-from tests.mixins import ModelAndDatasetSetupMixin
+from tests.base import ModelAndDatasetBaseTestCase
 
 
-class CriterionTests(ModelAndDatasetSetupMixin, unittest.TestCase):
+class CriterionTests(ModelAndDatasetBaseTestCase):
 
     def test_bbs_loss(self):
         bbs_criterion = criterion.BbsL1Loss()
