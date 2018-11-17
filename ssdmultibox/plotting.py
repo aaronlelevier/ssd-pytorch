@@ -1,10 +1,11 @@
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches, patheffects
-from ssdmultibox.utils import open_image
-from ssdmultibox.datasets import Bboxer, SIZE
 
-import cv2
+from ssdmultibox.datasets import SIZE, Bboxer
+from ssdmultibox.utils import open_image
+
 
 def show_img(im, figsize=None, ax=None):
     if not ax:
@@ -66,3 +67,12 @@ def plot_single_detections(dataset, ids, detections):
         detected_bbs, _ = detections
         for bb in detected_bbs:
             draw_rect(ax, Bboxer.fastai_bb_to_pascal_bb(bb*SIZE))
+
+
+def show_img_predictions(bbs, scores, ann):
+    im = open_image(ann['image_path'])
+    resized_im = cv2.resize(im, (SIZE, SIZE))
+    ax = show_img(resized_im)
+    for bb, score in zip(bbs, scores):
+        draw_rect(ax, bb*SIZE)
+        draw_text(ax, bb[:2], "{:4f}".format(score.item()), sz=8)
