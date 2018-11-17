@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import patch
 
+import pytest
+
 from ssdmultibox.predict import Predict
 from tests.mixins import ModelAndDatasetSetupMixin
 
@@ -29,6 +31,24 @@ class PredictTests(ModelAndDatasetSetupMixin, unittest.TestCase):
             assert len(ret_bbs.shape) == 2
             assert len(ret_scores.shape) == 1
             assert ret_bbs.shape[0] == ret_scores.shape[0]
+
+    def test_detections_for_single_category__explicit_choose_item_in_batch(self):
+        cls_id = 12
+
+        ret = Predict.detections_for_single_category(cls_id, self.preds)
+        ret2 = Predict.detections_for_single_category(cls_id, self.preds, index=1)
+
+        if ret and ret2:
+            assert ret[0].shape != ret2[0].shape, \
+            "shouldn't be the same because different training example items"
+
+    def test_detections_for_single_category__bad_index_raises_error(self):
+        cls_id = 12
+        index = 5
+        assert self.preds[0][0][0].shape[0] < index
+
+        with pytest.raises(IndexError):
+            Predict.detections_for_single_category(cls_id, self.preds, index=index)
 
     def test_get_stacked_bbs_and_cats(self):
         ret = Predict.get_stacked_bbs_and_cats(self.preds)
