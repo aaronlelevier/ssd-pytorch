@@ -9,7 +9,7 @@ CONF_THRESH = 0.1
 class Predict:
 
     @classmethod
-    def detections_for_single_category(cls, cls_id, preds, index=0):
+    def single_predict(cls, cls_id, preds, index=0):
         """
         Full predictions for a single class
 
@@ -22,7 +22,7 @@ class Predict:
         """
         bbs, cats = cls.get_stacked_bbs_and_cats(preds)
         item_bbs, item_cats = bbs[index], cats[index]
-        return cls.single_predict(cls_id, item_bbs, item_cats)
+        return cls.single_nms(cls_id, item_bbs, item_cats)
 
     @staticmethod
     def get_stacked_bbs_and_cats(preds):
@@ -55,7 +55,7 @@ class Predict:
         return bbs, cats
 
     @classmethod
-    def single_predict(cls, cls_id, item_bbs, item_cats):
+    def single_nms(cls, cls_id, item_bbs, item_cats):
         """
         Returns the NMS detections for a single image
 
