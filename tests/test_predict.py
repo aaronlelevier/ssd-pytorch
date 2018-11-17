@@ -5,7 +5,7 @@ import pytest
 import torch
 import numpy as np
 
-from ssdmultibox.predict import Predict
+from ssdmultibox.predict import Predict, CONF_THRESH
 from ssdmultibox.datasets import Bboxer
 from tests.base import ModelAndDatasetBaseTestCase
 from tests.base import BaseTestCase
@@ -17,11 +17,13 @@ class PredictTests(ModelAndDatasetBaseTestCase):
     def test_single_predict__calls_single_nms(
             self, mock_single_nms):
         cls_id = 6
+        conf_thresh = 0.5
 
-        ret = Predict.single_predict(cls_id, self.preds)
+        ret = Predict.single_predict(cls_id, self.preds, conf_thresh=conf_thresh)
 
         assert mock_single_nms.called
         assert mock_single_nms.call_args[0][0] == cls_id
+        assert mock_single_nms.call_args[0][-1] == conf_thresh
 
     def test_single_predict__returns_correct_shapes(self):
         cls_id = 12
@@ -79,6 +81,82 @@ class PredictTests(ModelAndDatasetBaseTestCase):
 
 @pytest.mark.unit
 class PredictUnitTests(BaseTestCase):
+
+    def test_single_nms__both_returned_bc_pass_conf_thresh_and_no_overlap(self):
+        cls_id = 0
+        a = [0., 0., 5., 10.]
+        b = [5., 5., 10., 10.]
+        assert Bboxer.single_bb_iou(a, b) == 0
+        item_bbs = torch.tensor([a, b])
+        assert list(item_bbs.shape) == [2, 4]
+        cats_a = torch.cat((torch.tensor([.5]), torch.zeros(19)))
+        cats_b = torch.cat((torch.tensor([.6]), torch.zeros(19)))
+        item_cats = torch.stack((cats_a, cats_b))
+        assert list(item_cats.shape) == [2, 20]
+
+        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+
+        self.assert_arr_equals(ret_bbs, [b, a])
+        self.assert_arr_equals(ret_scores, [.6, .5])
+
+    def test_single_nms__one_returned_bc_pass_conf_thresh_too_low(self):
+        cls_id = 0
+        a = [0., 0., 5., 10.]
+        b = [5., 5., 10., 10.]
+        assert Bboxer.single_bb_iou(a, b) == 0
+        item_bbs = torch.tensor([a, b])
+        assert list(item_bbs.shape) == [2, 4]
+        low_conf_thresh = .09
+        assert low_conf_thresh < CONF_THRESH
+        cats_a = torch.cat((torch.tensor([low_conf_thresh]), torch.zeros(19)))
+        assert (cats_a > CONF_THRESH).sum().item() == 0
+        cats_b = torch.cat((torch.tensor([.6]), torch.zeros(19)))
+        item_cats = torch.stack((cats_a, cats_b))
+        assert list(item_cats.shape) == [2, 20]
+
+        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+
+        self.assert_arr_equals(ret_bbs, [b])
+        self.assert_arr_equals(ret_scores, [.6])
+
+    def test_single_nms__can_change_conf_thresh(self):
+        conf_thresh = 0.55
+        cls_id = 0
+        a = [0., 0., 5., 10.]
+        b = [5., 5., 10., 10.]
+        assert Bboxer.single_bb_iou(a, b) == 0
+        item_bbs = torch.tensor([a, b])
+        assert list(item_bbs.shape) == [2, 4]
+        cats_a = torch.cat((torch.tensor([.5]), torch.zeros(19)))
+        assert (cats_a > conf_thresh).sum().item() == 0
+        cats_b = torch.cat((torch.tensor([.6]), torch.zeros(19)))
+        assert (cats_b > conf_thresh).sum().item() == 1
+        item_cats = torch.stack((cats_a, cats_b))
+        assert list(item_cats.shape) == [2, 20]
+
+        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
+
+        self.assert_arr_equals(ret_bbs, [b])
+        self.assert_arr_equals(ret_scores, [.6])
+
+    def test_single_nms__filters_out_by_cls_id(self):
+        cls_id = 0
+        a = [0., 0., 5., 10.]
+        b = [5., 5., 10., 10.]
+        assert Bboxer.single_bb_iou(a, b) == 0
+        item_bbs = torch.tensor([a, b])
+        assert list(item_bbs.shape) == [2, 4]
+        # the ordering of the one-hot category max'es dictates which
+        # cls_id, so cats_a is cls 1, cats_b is cls 0
+        cats_a = torch.cat((torch.tensor([0, .5]), torch.zeros(18)))
+        cats_b = torch.cat((torch.tensor([.6, 0]), torch.zeros(18)))
+        item_cats = torch.stack((cats_a, cats_b))
+        assert list(item_cats.shape) == [2, 20]
+
+        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+
+        self.assert_arr_equals(ret_bbs, [b])
+        self.assert_arr_equals(ret_scores, [.6])
 
     def test_nms__suppresses_overlapping_bb_with_lower_score(self):
         # item 0 in boxes is the lowest score, with a .8 overlap

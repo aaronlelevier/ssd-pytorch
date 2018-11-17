@@ -9,7 +9,7 @@ CONF_THRESH = 0.1
 class Predict:
 
     @classmethod
-    def single_predict(cls, cls_id, preds, index=0):
+    def single_predict(cls, cls_id, preds, index=0, conf_thresh=CONF_THRESH):
         """
         Full predictions for a single class
 
@@ -17,12 +17,14 @@ class Predict:
             cls_id (int): category_id
             preds: mini-batch preds from model
             index (int): index of batch item to choose
+            conf_thresh (float):
+                percent confidence threshold to filter detections by
         Returns:
             tuple(bbs, scores) or None
         """
         bbs, cats = cls.get_stacked_bbs_and_cats(preds)
         item_bbs, item_cats = bbs[index], cats[index]
-        return cls.single_nms(cls_id, item_bbs, item_cats)
+        return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
 
     @staticmethod
     def get_stacked_bbs_and_cats(preds):
@@ -55,21 +57,22 @@ class Predict:
         return bbs, cats
 
     @classmethod
-    def single_nms(cls, cls_id, item_bbs, item_cats):
+    def single_nms(cls, cls_id, item_bbs, item_cats, conf_thresh=CONF_THRESH):
         """
         Returns the NMS detections for a single image
 
         Args:
             cls_id (int): category id of object to detect
             item_bbs (2d array): [feature_maps, 4] bbs preds
-            item_cats (2d array):
-                [feature_maps, 20] one hot encoded category preds
+            item_cats (2d array):[feature_maps, 20] one-hot cats preds
+            conf_thresh (float):
+                percent confidence threshold to filter detections by
         Returns:
             tuple ([nms_bbs, 4], [scores]) or None if no matches
         """
         cls_conf, cls_ids = item_cats.max(1)
         # per cls
-        cls_conf_thresh_mask = cls_conf.gt(CONF_THRESH)
+        cls_conf_thresh_mask = cls_conf.gt(conf_thresh)
         cls_ids_gt_conf_thresh = cls_ids[cls_conf_thresh_mask]
         cls_conf_gt_conf_thresh = cls_conf[cls_conf_thresh_mask]
         bbs_gt_conf_thresh = item_bbs[cls_conf_thresh_mask]
