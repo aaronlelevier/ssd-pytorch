@@ -277,9 +277,10 @@ class Bboxer:
     def get_iou(cls, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):
         "Returns a 2d arr of the IoU for each obj with size [obj count, feature cell count]"
         intersect = cls.get_intersection(bbs, im, grid_size, aspect_ratio)
-        # TODO: I need to remove the `intersect` from the `bbs_union` var here. this is a bug!
         bbs_union = cls.get_ancb_area(grid_size) + cls.get_bbs_area(bbs, im)
-        return (intersect.T / bbs_union).T
+        bbs_union_all = np.repeat(
+            bbs_union, intersect.shape[-1]).reshape(*intersect.shape) - intersect
+        return intersect / bbs_union_all
 
     @classmethod
     def get_gt_overlap_and_idx(cls, bbs, im, grid_size=4, aspect_ratio=(1.,1.)):

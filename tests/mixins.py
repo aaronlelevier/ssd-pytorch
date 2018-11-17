@@ -1,21 +1,30 @@
 from torch.utils.data import DataLoader
 
-from ssdmultibox.datasets import TrainPascalDataset, BATCH
+from ssdmultibox.datasets import BATCH, TrainPascalDataset
 from ssdmultibox.models import SSDModel
 
+PREDS_CACHE = {}
 
 class ModelAndDatasetSetupMixin:
 
     @classmethod
     def setUpClass(cls):
-        # data
-        dataset = TrainPascalDataset()
-        dataloader = DataLoader(dataset, batch_size=BATCH, num_workers=0)
-        image_ids, ims, gt_bbs, gt_cats = next(iter(dataloader))
-        ims, cls.gt_bbs, cls.gt_cats = dataset.to_device(ims, gt_bbs, gt_cats)
-        # model
-        model = SSDModel()
-        cls.preds = model(ims)
+        if not PREDS_CACHE:
+            # data
+            dataset = TrainPascalDataset()
+            dataloader = DataLoader(dataset, batch_size=BATCH, num_workers=0)
+            image_ids, ims, gt_bbs, gt_cats = next(iter(dataloader))
+            ims, gt_bbs, gt_cats = dataset.to_device(ims, gt_bbs, gt_cats)
+            # model
+            model = SSDModel()
+            preds = model(ims)
+            PREDS_CACHE.update({
+                'gt_bbs': gt_bbs,
+                'gt_cats': gt_cats,
+                'preds': preds
+            })
+        for k,v in PREDS_CACHE.items():
+            setattr(cls, k, v)
 
     def setUp(self):
         self.gt_bbs = self.__class__.gt_bbs
