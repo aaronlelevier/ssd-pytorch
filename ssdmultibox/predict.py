@@ -103,7 +103,7 @@ class Predict:
 
         nms_ids, nms_count = cls.nms(boxes, scores)
         detected_ids = nms_ids[:nms_count]
-        detected_cls_ids = torch.tensor([cls_id]).repeat(nms_count)
+        detected_cls_ids = torch.tensor([cls_id]).repeat(nms_count).to(device)
         return boxes[detected_ids], scores[detected_ids], detected_cls_ids
 
     # Original author: Francisco Massa:
