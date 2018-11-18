@@ -1,6 +1,6 @@
 import torch
 
-from ssdmultibox.datasets import BATCH, NUM_CLASSES
+from ssdmultibox.datasets import BATCH, NUM_CLASSES, device
 
 CONF_THRESH = 0.1
 
@@ -9,9 +9,9 @@ class Predict:
 
     @classmethod
     def predict_all(cls, preds, index=0, conf_thresh=CONF_THRESH):
-        bbs = torch.empty(0, dtype=torch.float)
-        scores = torch.empty(0, dtype=torch.float)
-        cls_ids = torch.empty(0, dtype=torch.long)
+        bbs = torch.empty(0, dtype=torch.float).to(device)
+        scores = torch.empty(0, dtype=torch.float).to(device)
+        cls_ids = torch.empty(0, dtype=torch.long).to(device)
 
         for c in range(NUM_CLASSES):
             single_preds = cls.single_predict(c, preds, index, conf_thresh)
