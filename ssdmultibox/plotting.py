@@ -1,8 +1,8 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import patches, patheffects
 
+import matplotlib.pyplot as plt
+from matplotlib import patches, patheffects
 from ssdmultibox.datasets import SIZE, Bboxer
 from ssdmultibox.utils import open_image
 
@@ -16,8 +16,9 @@ def show_img(im, figsize=None, ax=None):
     return ax
 
 
-def draw_rect(ax, b, edgecolor='white'):
-    patch = ax.add_patch(patches.Rectangle(b[:2], *b[-2:], fill=False, edgecolor=edgecolor, lw=2))
+def draw_rect(ax, pascal_bb, edgecolor='white'):
+    patch = ax.add_patch(patches.Rectangle(
+        pascal_bb[:2], *pascal_bb[-2:], fill=False, edgecolor=edgecolor, lw=2))
     draw_outline(patch, 4)
 
 
@@ -74,5 +75,9 @@ def show_img_predictions(bbs, scores, ann):
     resized_im = cv2.resize(im, (SIZE, SIZE))
     ax = show_img(resized_im)
     for bb, score in zip(bbs, scores):
-        draw_rect(ax, bb*SIZE)
-        draw_text(ax, bb[:2], "{:4f}".format(score.item()), sz=8)
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*SIZE)
+        draw_rect(ax, pascal_bb)
+        draw_text(ax, [bb[1],bb[0]], "{:4f}".format(score.item()), sz=8)
+    # gt bbs
+    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
+        draw_rect(ax, gt_bb, edgecolor='yellow')

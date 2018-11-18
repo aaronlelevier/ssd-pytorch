@@ -1,17 +1,33 @@
 import unittest
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
-from ssdmultibox.predict import Predict, CONF_THRESH
-from ssdmultibox.datasets import Bboxer
-from tests.base import ModelAndDatasetBaseTestCase
-from tests.base import BaseTestCase
+from ssdmultibox.datasets import NUM_CLASSES, Bboxer
+from ssdmultibox.predict import CONF_THRESH, Predict
+from tests.base import BaseTestCase, ModelAndDatasetBaseTestCase
 
 
 class PredictTests(ModelAndDatasetBaseTestCase):
+
+    def test_predict_all(self):
+        single_preds = None
+        for c in range(NUM_CLASSES):
+            single_preds = Predict.single_predict(c, self.preds)
+            if single_preds:
+                break
+
+        ret_bbs , ret_scores, ret_cls_ids = Predict.predict_all(self.preds)
+
+        single_bbs, single_scores, single_cls_ids = single_preds
+        # more then 1 cls of obj detected
+        assert ret_bbs.shape[0] > single_bbs.shape[0]
+        assert len(ret_bbs.shape) == 2
+        assert ret_bbs.shape[1] == 4
+        assert ret_bbs.shape[0] == ret_scores.shape[0]
+        assert ret_bbs.shape[0] == ret_cls_ids.shape[0]
 
     @patch("ssdmultibox.predict.Predict.single_nms")
     def test_single_predict__calls_single_nms(

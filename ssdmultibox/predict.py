@@ -2,11 +2,28 @@ import torch
 
 from ssdmultibox.datasets import BATCH, NUM_CLASSES
 
-
 CONF_THRESH = 0.1
 
 
 class Predict:
+
+    @classmethod
+    def predict_all(cls, preds, index=0, conf_thresh=CONF_THRESH):
+        bbs = torch.empty(0, dtype=torch.float)
+        scores = torch.empty(0, dtype=torch.float)
+        cls_ids = torch.empty(0, dtype=torch.long)
+
+        for c in range(NUM_CLASSES):
+            single_preds = cls.single_predict(c, preds, index, conf_thresh)
+            if single_preds:
+                single_bbs, single_scores, single_cls_ids = single_preds
+                bbs = torch.cat((bbs, single_bbs))
+                scores = torch.cat((scores, single_scores))
+                cls_ids = torch.cat((cls_ids, single_cls_ids))
+
+        # sort descending what are the highest conf preds accross all classes
+        sorted_scores, sorted_ids = scores.sort(0, descending=True)
+        return bbs[sorted_ids], sorted_scores, cls_ids[sorted_ids]
 
     @classmethod
     def single_predict(cls, cls_id, preds, index=0, conf_thresh=CONF_THRESH):

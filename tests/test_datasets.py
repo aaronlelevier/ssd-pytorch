@@ -638,7 +638,7 @@ class BboxerTests(BaseTestCase):
 
         self.assert_arr_equals(
             ret,
-            [ 93.              ,  86.48648648648648, 117.6             , 156.75675675675674]
+            [ 93.              ,  86.48648648648648, 116.6             ,155.75675675675674]
         )
 
     def test_single_bb_intersect(self):

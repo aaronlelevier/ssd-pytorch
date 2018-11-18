@@ -399,7 +399,7 @@ class Bboxer:
     @staticmethod
     def fastai_bb_to_pascal_bb(bb):
         "Converts a fastai formatted bb to a pascal bb"
-        return np.array([bb[1], bb[0], bb[3]-bb[1]+1, bb[2]-bb[0]+1])
+        return np.array([bb[1], bb[0], bb[3]-bb[1], bb[2]-bb[0]])
 
     # REVIEW: might need 2 separate classes for the Bboxer concept
     # one that deals w/ single bbox ops and one for multiple
