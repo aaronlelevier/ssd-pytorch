@@ -33,10 +33,11 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         # same shapes from single_nms, need `if` because sometimes
         # this is none, but if it's detected something, I want check shapes
         if ret:
-            ret_bbs , ret_scores = ret
+            ret_bbs , ret_scores, ret_cls_ids = ret
             assert len(ret_bbs.shape) == 2
             assert len(ret_scores.shape) == 1
             assert ret_bbs.shape[0] == ret_scores.shape[0]
+            assert ret_cls_ids.shape[0] == ret_scores.shape[0]
 
     def test_single_predict__explicit_choose_item_in_batch(self):
         cls_id = 12
@@ -70,13 +71,14 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         item_cats = cats[0]
         item_bbs = bbs[0]
 
-        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.single_nms(cls_id, item_bbs, item_cats)
 
         assert len(ret_bbs.shape) == 2
         assert len(ret_scores.shape) == 1
         assert ret_bbs.shape[0] == ret_scores.shape[0]
         assert ret_bbs.shape[1] == 4, "4 points p/ bb"
         assert ret_scores.sum().item() != 0, "pred confidence should always be greater than 0"
+        assert ret_cls_ids.shape[0] == ret_scores.shape[0]
 
 
 @pytest.mark.unit
@@ -94,10 +96,11 @@ class PredictUnitTests(BaseTestCase):
         item_cats = torch.stack((cats_a, cats_b))
         assert list(item_cats.shape) == [2, 20]
 
-        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.single_nms(cls_id, item_bbs, item_cats)
 
         self.assert_arr_equals(ret_bbs, [b, a])
         self.assert_arr_equals(ret_scores, [.6, .5])
+        self.assert_arr_equals(ret_cls_ids, [0, 0])
 
     def test_single_nms__one_returned_bc_pass_conf_thresh_too_low(self):
         cls_id = 0
@@ -114,10 +117,11 @@ class PredictUnitTests(BaseTestCase):
         item_cats = torch.stack((cats_a, cats_b))
         assert list(item_cats.shape) == [2, 20]
 
-        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.single_nms(cls_id, item_bbs, item_cats)
 
         self.assert_arr_equals(ret_bbs, [b])
         self.assert_arr_equals(ret_scores, [.6])
+        self.assert_arr_equals(ret_cls_ids, [0])
 
     def test_single_nms__can_change_conf_thresh(self):
         conf_thresh = 0.55
@@ -134,10 +138,12 @@ class PredictUnitTests(BaseTestCase):
         item_cats = torch.stack((cats_a, cats_b))
         assert list(item_cats.shape) == [2, 20]
 
-        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.single_nms(
+            cls_id, item_bbs, item_cats, conf_thresh)
 
         self.assert_arr_equals(ret_bbs, [b])
         self.assert_arr_equals(ret_scores, [.6])
+        self.assert_arr_equals(ret_cls_ids, [0])
 
     def test_single_nms__filters_out_by_cls_id(self):
         cls_id = 0
@@ -153,10 +159,11 @@ class PredictUnitTests(BaseTestCase):
         item_cats = torch.stack((cats_a, cats_b))
         assert list(item_cats.shape) == [2, 20]
 
-        ret_bbs, ret_scores = Predict.single_nms(cls_id, item_bbs, item_cats)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.single_nms(cls_id, item_bbs, item_cats)
 
         self.assert_arr_equals(ret_bbs, [b])
         self.assert_arr_equals(ret_scores, [.6])
+        self.assert_arr_equals(ret_cls_ids, [0])
 
     def test_nms__suppresses_overlapping_bb_with_lower_score(self):
         # item 0 in boxes is the lowest score, with a .8 overlap
