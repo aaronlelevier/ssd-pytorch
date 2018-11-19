@@ -110,5 +110,4 @@ venv.bak/
 .dmypy.json
 dmypy.json
 .vscode
-*.ipynb
 model_checkpoints/

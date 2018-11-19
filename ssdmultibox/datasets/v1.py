@@ -215,12 +215,26 @@ class Bboxer:
         return cls.hw2corners(centers, hw)
 
     @classmethod
+    def anchor_boxes(cls):
+        "Return 6x6 all feature_map by aspect_ratio anchor boxes"
+        boxes = []
+        for i in range(len(FEATURE_MAPS)):
+            grid_size = FEATURE_MAPS[i]
+            ar_bbs = []
+            for aspect_ratio in cls.aspect_ratios(grid_size):
+                ar_bbs.append(
+                    cls.anchor_corners(grid_size, aspect_ratio)
+                )
+            boxes.append(ar_bbs)
+        return boxes
+
+    @classmethod
     def hw2corners(cls, center, hw):
         "Return anchor corners based upon center and hw"
         return np.concatenate([center-hw/2, center+hw/2], axis=1)
 
     @staticmethod
-    def aspect_ratios(grid_size):
+    def aspect_ratios(grid_size=1):
         "Returns the aspect ratio"
         sk = 1. / grid_size
         return np.array([

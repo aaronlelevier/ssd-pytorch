@@ -5,7 +5,7 @@ import pytest
 
 from ssdmultibox import config
 from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
-                                  TrainPascalDataset)
+                                  TrainPascalDataset, FEATURE_MAPS)
 from ssdmultibox.utils import open_image
 from tests.base import BaseTestCase
 
@@ -335,6 +335,17 @@ class BboxerTests(BaseTestCase):
         ret = Bboxer.anchor_corners(grid_size=4)
 
         self.assert_arr_equals(ret, raw_ret)
+
+    def test_anchor_boxes(self):
+        ret = Bboxer.anchor_boxes()
+
+        for i in range(len(FEATURE_MAPS)):
+            grid_size = FEATURE_MAPS[i]
+            for j, aspect_ratio in enumerate(Bboxer.aspect_ratios(grid_size)):
+                print(i, j)
+                self.assert_arr_equals(
+                    ret[i][j],
+                    Bboxer.anchor_corners(grid_size, aspect_ratio))
 
     def test_anchor_corners_for_aspect_ratio(self):
         raw_ret = [
