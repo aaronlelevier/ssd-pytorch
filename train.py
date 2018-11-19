@@ -24,14 +24,14 @@ class Phase(enum.Enum):
 if 'losses' not in locals(): losses = {Phase.TRAIN: [], Phase.VAL: []}
 
 
-def get_dataloaders():
+def get_dataloaders(batch=BATCH, num_workers=NUM_WORKERS):
     train_dataset = TrainPascalDataset()
     val_dataset = ValPascalDataset()
     return {
         Phase.TRAIN: DataLoader(
-            train_dataset, batch_size=BATCH, num_workers=NUM_WORKERS, shuffle=True),
+            train_dataset, batch_size=batch, num_workers=num_workers, shuffle=True),
         Phase.VAL: DataLoader(
-            val_dataset, batch_size=BATCH, num_workers=NUM_WORKERS)
+            val_dataset, batch_size=batch, num_workers=num_workers)
     }
 
 
@@ -39,9 +39,9 @@ def get_model():
     return SSDModel().to(device)
 
 
-def train(model, dataloaders, epochs):
+def train(model, dataloaders, epochs, lr=LR):
     criterion = SSDLoss()
-    optimizer = optim.SGD(model.parameters(), lr=LR)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     current_time = time.time()
 
