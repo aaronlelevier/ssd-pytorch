@@ -10,10 +10,9 @@ from ssdmultibox.datasets import PascalDataset, TrainPascalDataset, ValPascalDat
 from ssdmultibox.models import SSDModel
 
 EPOCHS = 1
-BATCH = 8
+BATCH = 4
 NUM_WORKERS = 0 # MAC: sysctl -n hw.ncpu
 LR = 0.01
-CLIP = 0.5
 
 
 class Phase(enum.Enum):

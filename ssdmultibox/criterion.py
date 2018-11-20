@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ssdmultibox.datasets import NUM_CLASSES, SIZE, device
+from ssdmultibox.datasets import NUM_CLASSES, SIZE, device, Bboxer
 
 
 class CatsBCELoss(nn.Module):
@@ -51,17 +51,27 @@ class BbsL1Loss(nn.Module):
         preds = inputs
         gt_bbs, gt_cats = targets
         loss =  torch.tensor(0, dtype=torch.float32).to(device)
+        anchor_boxes = Bboxer.anchor_boxes()
         for fm_idx in range(len(preds)):
             for ar_idx in range(len(preds[fm_idx])):
                 gt_idxs = gt_cats[fm_idx][ar_idx] != 20
                 loss.add_(
-                    self._bbs_loss(gt_bbs[fm_idx][ar_idx], preds[fm_idx][ar_idx][0], gt_idxs))
+                    self._bbs_loss(
+                        gt_bbs[fm_idx][ar_idx], preds[fm_idx][ar_idx][0],
+                        gt_idxs, anchor_boxes[fm_idx][ar_idx]))
         return loss
 
-    def _bbs_loss(self, y, yhat, gt_idxs):
+    def _bbs_loss(self, y, yhat, gt_idxs, anchor_boxes):
         batch_size = y.shape[0]
-        y = torch.tensor(y.reshape(batch_size, -1, 4)[gt_idxs], dtype=torch.float32).to(device)
-        inputs = yhat.reshape(batch_size, -1, 4)[gt_idxs]
+        # reshape
+        y = torch.tensor(y.reshape(batch_size, -1, 4), dtype=torch.float32).to(device)
+        yhat = yhat.reshape(batch_size, -1, 4)
+        # use initial anchor_boxes offsets
+        anchor_boxes = torch.tensor(anchor_boxes, dtype=torch.float32).to(device)
+        yhat = anchor_boxes + yhat
+        # filter for gt indexes
+        y = y[gt_idxs]
+        inputs = yhat[gt_idxs]
         targets = (y / SIZE)
         return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
