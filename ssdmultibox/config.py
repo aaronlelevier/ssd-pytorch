@@ -14,3 +14,16 @@ else: # kaggle
     DATA_DIR = Path('../input/pascal/pascal')
 
 IMAGE_PATH = Path(DATA_DIR/'JPEGImages/')
+
+
+class SSD_LOSS:
+    ALPHA = 1
+
+class NMS:
+    OVERLAP = 0.5
+    TOP_K = 200
+    CONF_THRESH = 0.1
+
+class CONFIG:
+    SSD_LOSS = SSD_LOSS()
+    NMS = NMS()
