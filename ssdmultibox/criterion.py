@@ -86,12 +86,12 @@ class SSDLoss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        conf = self.cats_loss(preds, gt_cats).abs()
-        loc = self.bbs_loss(preds, (gt_bbs, gt_cats)).abs()
+        conf = self.cats_loss(preds, gt_cats)
+        loc = self.bbs_loss(preds, (gt_bbs, gt_cats))
         n = self._matched_gt_cats(gt_cats)
-        print('cats_loss:', conf.item())
         print('bbs_loss:', loc.item())
-        return (1/n) * (conf + (self.alpha*loc))
+        print('cats_loss:', conf.item())
+        return (1/n) * (conf + (self.alpha*loc)), loc, conf
 
     def _matched_gt_cats(self, gt_cats):
         n = torch.tensor(0, dtype=torch.float32).to(device)
