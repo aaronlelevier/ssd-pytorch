@@ -238,17 +238,49 @@ class Bboxer:
         return cls.hw2corners(centers, hw)
 
     @classmethod
-    def anchor_boxes(cls):
-        "Return 6x6 all feature_map by aspect_ratio anchor boxes"
+    def anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+        """
+        Return 6x6 all feature_map by aspect_ratio anchor boxes
+
+        Args:
+            feature_maps (1d array): of integer feature map sizes
+            aspect_ratios (function):
+                that returns an aspect ratios array, fallows signature
+                `aspect_ratios(grid_size=1)`
+        """
+        aspect_ratios = aspect_ratios or cls.aspect_ratios
         boxes = []
-        for i in range(len(FEATURE_MAPS)):
-            grid_size = FEATURE_MAPS[i]
+        for i in range(len(feature_maps)):
+            grid_size = feature_maps[i]
             ar_bbs = []
-            for aspect_ratio in cls.aspect_ratios(grid_size):
+            for aspect_ratio in aspect_ratios(grid_size):
                 ar_bbs.append(
                     cls.anchor_corners(grid_size, aspect_ratio)
                 )
             boxes.append(ar_bbs)
+        return boxes
+
+    @classmethod
+    def stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+        """
+        Return stacked bbs for all feature_map by aspect_ratio anchor boxes
+
+        Args:
+            feature_maps (1d array): of integer feature map sizes
+            aspect_ratios (function):
+                that returns an aspect ratios array, fallows signature
+                `aspect_ratios(grid_size=1)`
+        """
+        aspect_ratios = aspect_ratios or cls.aspect_ratios
+        boxes = None
+        for i in range(len(feature_maps)):
+            grid_size = feature_maps[i]
+            for aspect_ratio in aspect_ratios(grid_size):
+                arr = np.clip(Bboxer.anchor_corners(grid_size, aspect_ratio), 0, 1)
+                if not isinstance(boxes, np.ndarray):
+                    boxes = arr
+                else:
+                    boxes = np.concatenate((boxes, arr))
         return boxes
 
     @classmethod

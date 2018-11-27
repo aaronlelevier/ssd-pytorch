@@ -365,6 +365,39 @@ class BboxerTests(BaseTestCase):
                     ret[i][j],
                     Bboxer.anchor_corners(grid_size, aspect_ratio))
 
+    def test_stacked_anchor_boxes(self):
+        ret = Bboxer.stacked_anchor_boxes(
+            feature_maps=[2,1],
+            aspect_ratios=lambda grid_size:[(1,1)])
+
+        self.assert_arr_equals(
+            ret,
+            [[0. , 0. , 0.5, 0.5],
+            [0. , 0.5, 0.5, 1. ],
+            [0.5, 0. , 1. , 0.5],
+            [0.5, 0.5, 1. , 1. ],
+            [0. , 0. , 1. , 1. ]]
+        )
+
+    def test_stacked_anchor_boxes__mult_grid_sizes_and_clip_min_0_max_1(self):
+        ret = Bboxer.stacked_anchor_boxes(
+            feature_maps=[2,1],
+            aspect_ratios=lambda grid_size:[(1,1),(1,2)])
+
+        self.assert_arr_equals(
+            ret,
+            [[0.  , 0.  , 0.5 , 0.5 ],
+            [0.  , 0.5 , 0.5 , 1.  ],
+            [0.5 , 0.  , 1.  , 0.5 ],
+            [0.5 , 0.5 , 1.  , 1.  ],
+            [0.  , 0.  , 0.5 , 0.75],
+            [0.  , 0.25, 0.5 , 1.  ],
+            [0.5 , 0.  , 1.  , 0.75],
+            [0.5 , 0.25, 1.  , 1.  ],
+            [0.  , 0.  , 1.  , 1.  ],
+            [0.  , 0.  , 1.  , 1.  ]]
+        )
+
     def test_anchor_corners_for_aspect_ratio(self):
         raw_ret = [
             [-0.125,  0.   ,  0.375,  0.25 ],
