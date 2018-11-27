@@ -365,39 +365,6 @@ class BboxerTests(BaseTestCase):
                     ret[i][j],
                     Bboxer.anchor_corners(grid_size, aspect_ratio))
 
-    def test_stacked_anchor_boxes(self):
-        ret = Bboxer.stacked_anchor_boxes(
-            feature_maps=[2,1],
-            aspect_ratios=lambda grid_size:[(1,1)])
-
-        self.assert_arr_equals(
-            ret,
-            [[0. , 0. , 0.5, 0.5],
-            [0. , 0.5, 0.5, 1. ],
-            [0.5, 0. , 1. , 0.5],
-            [0.5, 0.5, 1. , 1. ],
-            [0. , 0. , 1. , 1. ]]
-        )
-
-    def test_stacked_anchor_boxes__mult_grid_sizes_and_clip_min_0_max_1(self):
-        ret = Bboxer.stacked_anchor_boxes(
-            feature_maps=[2,1],
-            aspect_ratios=lambda grid_size:[(1,1),(1,2)])
-
-        self.assert_arr_equals(
-            ret,
-            [[0.  , 0.  , 0.5 , 0.5 ],
-            [0.  , 0.5 , 0.5 , 1.  ],
-            [0.5 , 0.  , 1.  , 0.5 ],
-            [0.5 , 0.5 , 1.  , 1.  ],
-            [0.  , 0.  , 0.5 , 0.75],
-            [0.  , 0.25, 0.5 , 1.  ],
-            [0.5 , 0.  , 1.  , 0.75],
-            [0.5 , 0.25, 1.  , 1.  ],
-            [0.  , 0.  , 1.  , 1.  ],
-            [0.  , 0.  , 1.  , 1.  ]]
-        )
-
     def test_anchor_corners_for_aspect_ratio(self):
         raw_ret = [
             [-0.125,  0.   ,  0.375,  0.25 ],
@@ -757,3 +724,80 @@ class BboxerTests(BaseTestCase):
         ret = Bboxer.single_bb_iou(a, b)
 
         assert ret == 0.5
+
+    def test_stacked_anchor_boxes(self):
+        ret = Bboxer.stacked_anchor_boxes(
+            feature_maps=[2,1],
+            aspect_ratios=lambda grid_size:[(1,1)])
+
+        self.assert_arr_equals(
+            ret,
+            [[0. , 0. , 0.5, 0.5],
+            [0. , 0.5, 0.5, 1. ],
+            [0.5, 0. , 1. , 0.5],
+            [0.5, 0.5, 1. , 1. ],
+            [0. , 0. , 1. , 1. ]]
+        )
+
+    def test_stacked_anchor_boxes__mult_grid_sizes_and_clip_min_0_max_1(self):
+        ret = Bboxer.stacked_anchor_boxes(
+            feature_maps=[2,1],
+            aspect_ratios=lambda grid_size:[(1,1),(1,2)])
+
+        self.assert_arr_equals(
+            ret,
+            [[0.  , 0.  , 0.5 , 0.5 ],
+            [0.  , 0.5 , 0.5 , 1.  ],
+            [0.5 , 0.  , 1.  , 0.5 ],
+            [0.5 , 0.5 , 1.  , 1.  ],
+            [0.  , 0.  , 0.5 , 0.75],
+            [0.  , 0.25, 0.5 , 1.  ],
+            [0.5 , 0.  , 1.  , 0.75],
+            [0.5 , 0.25, 1.  , 1.  ],
+            [0.  , 0.  , 1.  , 1.  ],
+            [0.  , 0.  , 1.  , 1.  ]]
+        )
+
+    def test_get_stacked_intersection(self):
+        ann = self.dataset.get_annotations()[12]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        anchor_bbs = Bboxer.stacked_anchor_boxes(
+            feature_maps=[1], aspect_ratios=lambda grid_size:[(1.,1.)])
+
+        ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.201791531531531]]
+        )
+
+    def test_get_stacked_intersection__multiple_bbs(self):
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        anchor_bbs = Bboxer.stacked_anchor_boxes(
+            feature_maps=[1], aspect_ratios=lambda grid_size:[(1.,1.)])
+
+        ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.073121993284493],
+             [0.460923504273504]]
+        )
+
+    def test_get_stacked_intersection__multiple_anchor_bbs(self):
+        ann = self.dataset.get_annotations()[12]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        anchor_bbs = Bboxer.stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1.,1.)])
+
+        ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.040225225225225, 0.04206006006006 , 0.058420720720721,
+              0.061085525525526, 0.201791531531531]]
+        )

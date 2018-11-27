@@ -261,29 +261,6 @@ class Bboxer:
         return boxes
 
     @classmethod
-    def stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
-        """
-        Return stacked bbs for all feature_map by aspect_ratio anchor boxes
-
-        Args:
-            feature_maps (1d array): of integer feature map sizes
-            aspect_ratios (function):
-                that returns an aspect ratios array, fallows signature
-                `aspect_ratios(grid_size=1)`
-        """
-        aspect_ratios = aspect_ratios or cls.aspect_ratios
-        boxes = None
-        for i in range(len(feature_maps)):
-            grid_size = feature_maps[i]
-            for aspect_ratio in aspect_ratios(grid_size):
-                arr = np.clip(Bboxer.anchor_corners(grid_size, aspect_ratio), 0, 1)
-                if not isinstance(boxes, np.ndarray):
-                    boxes = arr
-                else:
-                    boxes = np.concatenate((boxes, arr))
-        return boxes
-
-    @classmethod
     def hw2corners(cls, center, hw):
         "Return anchor corners based upon center and hw"
         return np.concatenate([center-hw/2, center+hw/2], axis=1)
@@ -491,3 +468,47 @@ class Bboxer:
         # don't forget to remove their overlapping area from the union calc!
         u = cls.single_bb_area(bb) + cls.single_bb_area(gt_bb) - i
         return i/u
+
+    # stacked - in the Bboxer class for now..
+
+    @classmethod
+    def stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+        """
+        Return stacked bbs for all feature_map by aspect_ratio anchor boxes
+
+        Args:
+            feature_maps (1d array): of integer feature map sizes
+            aspect_ratios (function):
+                that returns an aspect ratios array, fallows signature
+                `aspect_ratios(grid_size=1)`
+        """
+        aspect_ratios = aspect_ratios or cls.aspect_ratios
+        boxes = None
+        for i in range(len(feature_maps)):
+            grid_size = feature_maps[i]
+            for aspect_ratio in aspect_ratios(grid_size):
+                arr = np.clip(cls.anchor_corners(grid_size, aspect_ratio), 0, 1)
+                if not isinstance(boxes, np.ndarray):
+                    boxes = arr
+                else:
+                    boxes = np.concatenate((boxes, arr))
+        return boxes
+
+    @classmethod
+    def get_stacked_intersection(cls, bbs, im, anchor_bbs):
+        """
+        Returns stacked intersections of shape (bbs_count, anchor_bbs_count)
+
+        Args:
+            bbs (2d array): from annotations of raw gt bbs
+            im (HWC 3d array) of image
+            anchor_bbs (2d array):
+                of shape (n, 4) where n is the number of stacked anchor boxes
+        """
+        bbs = cls.scaled_fastai_bbs(bbs, im)
+        bbs_count = anchor_bbs.shape[0]
+        bbs16 = np.reshape(np.tile(bbs, bbs_count), (-1,bbs_count,4))
+        intersect = np.minimum(
+            np.maximum(anchor_bbs[:,:2], bbs16[:,:,:2]) - \
+            np.minimum(anchor_bbs[:,2:], bbs16[:,:,2:]), 0)
+        return intersect[:,:,0] * intersect[:,:,1]
