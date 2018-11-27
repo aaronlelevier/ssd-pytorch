@@ -91,7 +91,7 @@ class SSDLoss(nn.Module):
         n = self._matched_gt_cats(gt_cats)
         print('bbs_loss:', loc.item())
         print('cats_loss:', conf.item())
-        return (1/n) * (conf + (self.alpha*loc)), loc, conf
+        return (1/n) * (conf + (self.alpha*loc))
 
     def _matched_gt_cats(self, gt_cats):
         n = torch.tensor(0, dtype=torch.float32).to(device)

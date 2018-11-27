@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ssdmultibox import config
-from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset,
+from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset, TrainPascalFlatDataset,
                                   TrainPascalDataset, FEATURE_MAPS)
 from ssdmultibox.utils import open_image
 from tests.base import BaseTestCase
@@ -257,6 +257,24 @@ class TrainPascalDatasetTests(BaseTestCase):
 
     def test_pascal_json(self):
         assert self.dataset.pascal_json == 'pascal_train2007.json'
+
+
+class TrainPascalFlatDatasetTests(BaseTestCase):
+
+    def setUp(self):
+        self.dataset = TrainPascalFlatDataset()
+
+    def test_getitem(self):
+        image_id, chw_im, gt_bbs, gt_cats = self.dataset[1]
+
+        assert image_id == 17
+        assert chw_im.shape == (3, SIZE, SIZE)
+        self.assert_arr_equals(
+            gt_bbs,
+            [[0.167582417582418, 0.383333333333333, 0.543369963369963, 0.577916666666667],
+             [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ]]
+        )
+        self.assert_arr_equals(gt_cats, [14, 12])
 
 
 class BboxerTests(BaseTestCase):

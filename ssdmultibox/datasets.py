@@ -186,6 +186,29 @@ class ValPascalDataset(PascalDataset):
         return 'pascal_val2007.json'
 
 
+class TrainPascalFlatDataset(TrainPascalDataset):
+    """
+    Dataset where the gt_bbs and gt_cats are a single unique record
+    and not duplicated per feature_map/aspect_ratio
+    """
+
+    def __getitem__(self, idx):
+        image_ids = self.get_image_ids()
+        image_id = image_ids[idx]
+        ann = self.get_annotations()[image_id]
+        bbs = ann[BBS]
+        cats = ann[CATS]
+
+        image_paths = self.images()
+        im = open_image(image_paths[image_id])
+        chw_im = self.scaled_im_by_size_and_chw_format(im)
+
+        gt_bbs = self.bboxer.scaled_fastai_bbs(bbs, im)
+        gt_cats = np.array(cats)
+
+        return image_id, chw_im, gt_bbs, gt_cats
+
+
 class Bboxer:
 
     def __init__(self):
