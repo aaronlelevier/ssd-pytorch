@@ -472,7 +472,7 @@ class Bboxer:
     # stacked - in the Bboxer class for now..
 
     @classmethod
-    def stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+    def get_stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
         """
         Return stacked bbs for all feature_map by aspect_ratio anchor boxes
 

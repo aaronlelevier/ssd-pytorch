@@ -725,8 +725,8 @@ class BboxerTests(BaseTestCase):
 
         assert ret == 0.5
 
-    def test_stacked_anchor_boxes(self):
-        ret = Bboxer.stacked_anchor_boxes(
+    def test_get_stacked_anchor_boxes(self):
+        ret = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[2,1],
             aspect_ratios=lambda grid_size:[(1,1)])
 
@@ -739,8 +739,8 @@ class BboxerTests(BaseTestCase):
             [0. , 0. , 1. , 1. ]]
         )
 
-    def test_stacked_anchor_boxes__mult_grid_sizes_and_clip_min_0_max_1(self):
-        ret = Bboxer.stacked_anchor_boxes(
+    def test_get_stacked_anchor_boxes__mult_grid_sizes_and_clip_min_0_max_1(self):
+        ret = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[2,1],
             aspect_ratios=lambda grid_size:[(1,1),(1,2)])
 
@@ -762,7 +762,7 @@ class BboxerTests(BaseTestCase):
         ann = self.dataset.get_annotations()[12]
         bbs = ann['bbs']
         im = open_image(ann['image_path'])
-        anchor_bbs = Bboxer.stacked_anchor_boxes(
+        anchor_bbs = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[1], aspect_ratios=lambda grid_size:[(1.,1.)])
 
         ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
@@ -776,7 +776,7 @@ class BboxerTests(BaseTestCase):
         ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
         bbs = ann['bbs']
         im = open_image(ann['image_path'])
-        anchor_bbs = Bboxer.stacked_anchor_boxes(
+        anchor_bbs = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[1], aspect_ratios=lambda grid_size:[(1.,1.)])
 
         ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
@@ -791,7 +791,7 @@ class BboxerTests(BaseTestCase):
         ann = self.dataset.get_annotations()[12]
         bbs = ann['bbs']
         im = open_image(ann['image_path'])
-        anchor_bbs = Bboxer.stacked_anchor_boxes(
+        anchor_bbs = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1.,1.)])
 
         ret = Bboxer.get_stacked_intersection(bbs, im, anchor_bbs)
