@@ -783,12 +783,11 @@ class BboxerTests(BaseTestCase):
 
         self.assert_arr_equals(
             ret,
-            [[0.073121993284493],
-             [0.460923504273504]]
+            [[0.073121993284493, 0.460923504273504]]
         )
 
     def test_get_stacked_intersection__multiple_anchor_bbs(self):
-        ann = self.dataset.get_annotations()[12]
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
         bbs = ann['bbs']
         im = open_image(ann['image_path'])
         anchor_bbs = Bboxer.get_stacked_anchor_boxes(
@@ -798,6 +797,9 @@ class BboxerTests(BaseTestCase):
 
         self.assert_arr_equals(
             ret,
-            [[0.040225225225225, 0.04206006006006 , 0.058420720720721,
-              0.061085525525526, 0.201791531531531]]
+            [[0.038782051282051, 0.090745192307692],
+            [0.02590086996337 , 0.096995192307692],
+            [0.005059829059829, 0.132044337606838],
+            [0.003379242979243, 0.141138782051282],
+            [0.073121993284493, 0.460923504273504]]
         )

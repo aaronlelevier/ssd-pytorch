@@ -497,7 +497,7 @@ class Bboxer:
     @classmethod
     def get_stacked_intersection(cls, bbs, im, anchor_bbs):
         """
-        Returns stacked intersections of shape (bbs_count, anchor_bbs_count)
+        Returns stacked intersections of shape (anchor_bbs_count, bbs_count)
 
         Args:
             bbs (2d array): from annotations of raw gt bbs
@@ -506,9 +506,10 @@ class Bboxer:
                 of shape (n, 4) where n is the number of stacked anchor boxes
         """
         bbs = cls.scaled_fastai_bbs(bbs, im)
-        bbs_count = anchor_bbs.shape[0]
-        bbs16 = np.reshape(np.tile(bbs, bbs_count), (-1,bbs_count,4))
+        anchor_bbs_count = anchor_bbs.shape[0]
+        bbs16 = np.reshape(np.tile(bbs, anchor_bbs_count), (-1,anchor_bbs_count,4))
         intersect = np.minimum(
             np.maximum(anchor_bbs[:,:2], bbs16[:,:,:2]) - \
             np.minimum(anchor_bbs[:,2:], bbs16[:,:,2:]), 0)
-        return intersect[:,:,0] * intersect[:,:,1]
+        raw_intersect = intersect[:,:,0] * intersect[:,:,1]
+        return raw_intersect.T.reshape(-1, bbs.shape[0])
