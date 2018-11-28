@@ -513,3 +513,45 @@ class Bboxer:
             np.minimum(anchor_bbs[:,2:], bbs16[:,:,2:]), 0)
         raw_intersect = intersect[:,:,0] * intersect[:,:,1]
         return raw_intersect.T.reshape(-1, bbs.shape[0])
+
+    @classmethod
+    def get_anchor_box_area(cls, sab):
+        """
+        Returns the area of each stacked_anchor_box in a 1d array
+
+        Args:
+            sab (2d array): stacked_anchor_boxes
+        """
+        return (sab[:,2]-sab[:,0])*(sab[:,3]-sab[:,1])
+
+    @classmethod
+    def get_stacked_union(cls, stacked_anchor_boxes, stacked_intersect, bbs_area):
+        """
+        Returns the stacked unioned area of the intersect area and the
+        anchor box area
+
+        Args:
+            stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (anchor_bbs_count, bbs_count)
+            bbs_area (1d array): of shape (bbs_count,)
+        Returns:
+            2d array: of shape (anchor_bbs_count, bbs_count)
+        """
+        anc_bbs_area = np.expand_dims(
+            cls.get_anchor_box_area(stacked_anchor_boxes), axis=1)
+        return anc_bbs_area + bbs_area - stacked_intersect
+
+    @classmethod
+    def get_stacked_iou(cls, stacked_anchor_boxes, stacked_intersect, bbs_area):
+        """
+        Returns the stacked IoU
+
+        Args:
+            stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (anchor_bbs_count, bbs_count)
+            bbs_area (1d array): of shape (bbs_count,)
+        Returns:
+            2d array: of shape (anchor_bbs_count, bbs_count)
+        """
+        union = cls.get_stacked_union(stacked_anchor_boxes, stacked_intersect, bbs_area)
+        return stacked_intersect / union

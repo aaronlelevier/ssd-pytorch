@@ -803,3 +803,67 @@ class BboxerTests(BaseTestCase):
             [0.003379242979243, 0.141138782051282],
             [0.073121993284493, 0.460923504273504]]
         )
+
+    def test_get_anchor_box_area(self):
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1.,1.)])
+
+        ret = Bboxer.get_anchor_box_area(stacked_anchor_boxes)
+
+        self.assert_arr_equals(
+            ret,
+            [0.25, 0.25, 0.25, 0.25, 1.  ]
+        )
+
+    def test_get_anchor_box_area__uses_clipped_anc_bbs_to_calc_correct_anc_bbs_area(self):
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[4], aspect_ratios=lambda grid_size:[(2,1)])
+
+        ret = Bboxer.get_anchor_box_area(stacked_anchor_boxes)
+
+        self.assert_arr_equals(
+            ret,
+            [0.09375, 0.09375, 0.09375, 0.09375, 0.125  , 0.125  , 0.125  ,
+            0.125  , 0.125  , 0.125  , 0.125  , 0.125  , 0.09375, 0.09375,
+            0.09375, 0.09375]
+        )
+
+    def test_get_stacked_union(self):
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = Bboxer.get_bbs_area(bbs, im)
+
+        ret = Bboxer.get_stacked_union(stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.284339942002442, 0.620178311965812],
+            [0.297221123321123, 0.613928311965812],
+            [0.318062164224664, 0.578879166666667],
+            [0.31974275030525 , 0.569784722222222],
+            [1.               , 1.               ]]
+        )
+
+    def test_get_stacked_iou(self):
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = Bboxer.get_bbs_area(bbs, im)
+
+        ret = Bboxer.get_stacked_iou(stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+        self.assert_arr_equals(
+            ret,
+            [[0.136393258748425, 0.146321131450167],
+            [0.087143436085416, 0.157991072275379],
+            [0.015908302303618, 0.228103454417236],
+            [0.010568630488156, 0.247705451807879],
+            [0.073121993284493, 0.460923504273504]]
+        )
