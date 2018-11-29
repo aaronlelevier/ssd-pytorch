@@ -882,3 +882,54 @@ class BboxerTests(BaseTestCase):
             [0.146321131450167, 0.157991072275379, 0.228103454417236,
             0.247705451807879, 0.460923504273504]]
         )
+
+    def test_get_stacked_gt_overlap_and_idx(self):
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        im = open_image(ann['image_path'])
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
+        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = Bboxer.get_bbs_area(bbs, im)
+
+        ret_gt_overlap, ret_gt_idx = Bboxer.get_stacked_gt_overlap_and_idx(
+            stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+        self.assert_arr_equals(
+            ret_gt_overlap,
+            [1.99             , 0.157991072275379, 0.228103454417236,
+            0.247705451807879, 1.99             ]
+        )
+        self.assert_arr_equals(
+            ret_gt_idx,
+            [0, 1, 1, 1, 1]
+        )
+
+    def test_get_stacked_gt_bbs_and_cats(self):
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        cats = np.array(ann['cats'])
+        im = open_image(ann['image_path'])
+        scaled_bbs = Bboxer.scaled_fastai_bbs(bbs, im)
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
+            feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
+        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = Bboxer.get_bbs_area(bbs, im)
+
+        ret_gt_bbs, ret_gt_cats = Bboxer.get_stacked_gt_bbs_and_cats(
+            scaled_bbs, cats, stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+        self.assert_arr_equals(
+            ret_gt_bbs,
+            [[0.167582417582418, 0.383333333333333, 0.543369963369963, 0.577916666666667],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ]]
+        )
+
+        assert ret_gt_bbs.shape == (stacked_anchor_boxes.shape[0], 4)
+        self.assert_arr_equals(
+            ret_gt_cats,
+            [14, 20, 20, 20, 12]
+        )

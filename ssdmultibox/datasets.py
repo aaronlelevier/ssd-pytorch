@@ -560,3 +560,62 @@ class Bboxer:
         """
         union = cls.get_stacked_union(stacked_anchor_boxes, stacked_intersect, bbs_area)
         return stacked_intersect / union
+
+    @classmethod
+    def get_stacked_gt_overlap_and_idx(cls, stacked_anchor_boxes, stacked_intersect, bbs_area):
+        """
+        Returns the gt_overlap and gt_idx for the bbs based on the IoU. The ground
+        truth overlap and idx is the object with the highest IoU per object.
+
+        NOTE: it is possible for a tie, in which the last tied object wins
+
+        Args:
+            stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (bbs_count, anchor_bbs_count)
+            bbs_area (1d array): of shape (bbs_count,)
+        Returns:
+            2 item tuple (1d array of float overlaps, 1d array of int object idxs)
+            Each is the length of the number of anchor boxes
+        """
+        overlaps = torch.tensor(
+            cls.get_stacked_iou(stacked_anchor_boxes, stacked_intersect, bbs_area))
+        _, prior_idx = overlaps.max(1)
+        gt_overlap, gt_idx = overlaps.max(0)
+        gt_overlap[prior_idx] = 1.99
+        # sets the gt_idx equal to the obj_idx for each prior_idx
+        for i,o in enumerate(prior_idx):
+            gt_idx[o] = i
+        return gt_overlap, gt_idx
+
+    @classmethod
+    def get_stacked_gt_bbs_and_cats(cls, scaled_bbs, cats, stacked_anchor_boxes, stacked_intersect, bbs_area):
+        """
+        Returns the gt_bbs and gt_cats based upon the gt_overlaps or if the
+        IoU is greater than the THRESH hyperparameter
+
+        Args:
+            scaled_bbs (2d array): of fastai scaled bbs
+            cats (1d array): of category ids
+            stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (bbs_count, anchor_bbs_count)
+            bbs_area (1d array): of shape (bbs_count,)
+        Returns:
+            2 item tuple (2d array of bbs, 1d array of cat ids)
+        """
+        gt_overlap, gt_idx = cls.get_stacked_gt_overlap_and_idx(
+            stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+        gt_bbs = scaled_bbs[gt_idx]
+        gt_cats = cats[gt_idx]
+        # the previous line will set the 0 ith class as the gt, so
+        # set it to bg if it doesn't meet the IoU threshold
+        pos = gt_overlap > THRESH
+        try:
+            neg_idx = np.nonzero(1-pos)[:,0]
+        except IndexError:
+            # skip if no negative indexes
+            pass
+        else:
+            gt_cats[neg_idx] = 20
+
+        return gt_bbs, gt_cats
