@@ -474,13 +474,17 @@ class Bboxer:
     @classmethod
     def get_stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
         """
-        Return stacked bbs for all feature_map by aspect_ratio anchor boxes
+        Return stacked anchor bbs coordinates for all feature_map
+        by aspect_ratio anchor boxes. For anchor bbs, the coordinates
+        are [x, y, x2, y2]
 
         Args:
             feature_maps (1d array): of integer feature map sizes
             aspect_ratios (function):
                 that returns an aspect ratios array, fallows signature
                 `aspect_ratios(grid_size=1)`
+        Returns:
+            (2d array): of shape (anchor_bbs_count, 4)
         """
         aspect_ratios = aspect_ratios or cls.aspect_ratios
         boxes = None
@@ -495,24 +499,24 @@ class Bboxer:
         return boxes
 
     @classmethod
-    def get_stacked_intersection(cls, bbs, im, anchor_bbs):
+    def get_stacked_intersection(cls, bbs, im, stacked_anchor_boxes):
         """
-        Returns stacked intersections of shape (anchor_bbs_count, bbs_count)
+        Returns stacked intersections of shape (bbs_count, anchor_bbs_count)
 
         Args:
             bbs (2d array): from annotations of raw gt bbs
             im (HWC 3d array) of image
-            anchor_bbs (2d array):
+            stacked_anchor_boxes (2d array):
                 of shape (n, 4) where n is the number of stacked anchor boxes
         """
         bbs = cls.scaled_fastai_bbs(bbs, im)
-        anchor_bbs_count = anchor_bbs.shape[0]
-        bbs16 = np.reshape(np.tile(bbs, anchor_bbs_count), (-1,anchor_bbs_count,4))
+        stacked_anchor_boxes_count = stacked_anchor_boxes.shape[0]
+        bbs16 = np.reshape(
+            np.tile(bbs, stacked_anchor_boxes_count), (-1,stacked_anchor_boxes_count,4))
         intersect = np.minimum(
-            np.maximum(anchor_bbs[:,:2], bbs16[:,:,:2]) - \
-            np.minimum(anchor_bbs[:,2:], bbs16[:,:,2:]), 0)
-        raw_intersect = intersect[:,:,0] * intersect[:,:,1]
-        return raw_intersect.T.reshape(-1, bbs.shape[0])
+            np.maximum(stacked_anchor_boxes[:,:2], bbs16[:,:,:2]) - \
+            np.minimum(stacked_anchor_boxes[:,2:], bbs16[:,:,2:]), 0)
+        return intersect[:,:,0] * intersect[:,:,1]
 
     @classmethod
     def get_anchor_box_area(cls, sab):
@@ -532,13 +536,14 @@ class Bboxer:
 
         Args:
             stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
-            stacked_intersect (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (bbs_count, anchor_bbs_count)
             bbs_area (1d array): of shape (bbs_count,)
         Returns:
-            2d array: of shape (anchor_bbs_count, bbs_count)
+            2d array: of shape (bbs_count, anchor_bbs_count)
         """
-        anc_bbs_area = np.expand_dims(
-            cls.get_anchor_box_area(stacked_anchor_boxes), axis=1)
+        anc_bbs_area = cls.get_anchor_box_area(stacked_anchor_boxes)
+        bbs_area = np.repeat(bbs_area, stacked_intersect.shape[1]).reshape(
+            stacked_intersect.shape[0], -1)
         return anc_bbs_area + bbs_area - stacked_intersect
 
     @classmethod
@@ -548,10 +553,10 @@ class Bboxer:
 
         Args:
             stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
-            stacked_intersect (2d array): of shape (anchor_bbs_count, bbs_count)
+            stacked_intersect (2d array): of shape (bbs_count, anchor_bbs_count)
             bbs_area (1d array): of shape (bbs_count,)
         Returns:
-            2d array: of shape (anchor_bbs_count, bbs_count)
+            2d array: of shape (bbs_count, anchor_bbs_count)
         """
         union = cls.get_stacked_union(stacked_anchor_boxes, stacked_intersect, bbs_area)
         return stacked_intersect / union
