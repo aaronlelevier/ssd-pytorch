@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import pytest
+import torch
 
 from ssdmultibox import config
 from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset, TrainPascalFlatDataset,
@@ -265,22 +266,27 @@ class TrainPascalFlatDatasetTests(BaseTestCase):
         self.dataset = TrainPascalFlatDataset()
 
     def test_getitem(self):
-        image_id, chw_im, im, bbs, gt_bbs, gt_cats = self.dataset[1]
+        image_id, chw_im, gt_bbs, gt_cats = self.dataset[1]
 
         assert image_id == 17
         assert chw_im.shape == (3, SIZE, SIZE)
-        assert im.shape == (364, 480, 3)
+        assert gt_bbs.shape == (11640, 4)
+        assert gt_cats.shape == (11640,)
+
+    def test_works_with_dataloader(self):
+        dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=4, num_workers=0)
+
+        item = next(iter(dataloader))
+
+        image_ids, ims, bbs, cats = item
+
         self.assert_arr_equals(
-            bbs,
-            [[184,  61,  95, 138],
-            [ 89,  77, 314, 259]]
-       )
-        self.assert_arr_equals(
-            gt_bbs,
-            [[0.167582417582418, 0.383333333333333, 0.543369963369963, 0.577916666666667],
-             [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ]]
+            image_ids,
+            [12, 17, 23, 26]
         )
-        self.assert_arr_equals(gt_cats, [14, 12])
+        assert ims.shape == (4, 3, SIZE, SIZE)
+        assert bbs.shape == (4, 11640, 4)
+        assert cats.shape == (4, 11640)
 
 
 class BboxerTests(BaseTestCase):
