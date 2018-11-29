@@ -6,6 +6,8 @@ opencv-python==3.4.2.16
 
 # dev
 isort==4.3.4
+jupyter
+notebook
 
 # testing
 pytest==3.7.2

@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 from torch import nn
@@ -10,41 +11,28 @@ from ssdmultibox.datasets import NUM_CLASSES
 class OutConv(nn.Module):
     def __init__(self, nin):
         super().__init__()
-        self.oconv1 = nn.Conv2d(nin, 4, 3, padding=1)
+        self.bbs_size = 4
+        self.oconv1 = nn.Conv2d(nin, self.bbs_size, 3, padding=1)
         self.oconv2 = nn.Conv2d(nin, NUM_CLASSES, 3, padding=1)
 
     def forward(self, x):
-        return [self.flatten_conv(self.oconv1(x)),
-                self.flatten_conv(self.oconv2(x))]
+        return [self.flatten_conv(self.oconv1(x), self.bbs_size),
+                self.flatten_conv(self.oconv2(x), NUM_CLASSES)]
 
-    def flatten_conv(self, x):
+    def flatten_conv(self, x, size):
         bs,nf,gx,gy = x.size()
         x = x.permute(0,2,3,1).contiguous()
-        return x.view(bs,-1)
+        return x.view(bs,-1, size)
 
 
 class OutCustomHead(nn.Module):
+    """
+    Returns the final stacked predictions as a tuple (bbs, cats)
+    """
     def __init__(self):
         super().__init__()
         self.aspect_ratio_count = 6
         self._setup_outconvs()
-
-    def forward(self, blocks):
-        """
-        Returns a 2d list that's shape (6,6) of OutConv outputs.
-        Each 0d item is a 6 item list of the outputs for a single
-        aspect ratio. There's 6 lists of 6, so 6 feature map blocks with
-        6 aspect ratio predictions each.
-        """
-        ret = []
-        for k,v in blocks.items():
-            ar_ret = []
-            for i in range(self.aspect_ratio_count):
-                # NOTE: maybe shouldn't be accessing the `_modules` private OrderedDict here ...
-                fm_ar_outconv = self._modules[f'{k}_{i}']
-                ar_ret.append(fm_ar_outconv(v))
-            ret.append(ar_ret)
-        return ret
 
     def _setup_outconvs(self):
         block_names = ['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
@@ -52,6 +40,25 @@ class OutCustomHead(nn.Module):
         for i, name in enumerate(block_names):
             for j, ar in enumerate(range(self.aspect_ratio_count)):
                 setattr(self, f'{block_names[i]}_{j}', OutConv(block_sizes[i]))
+
+    def forward(self, blocks):
+        all_bbs = None
+        all_cats = None
+        first_loop = True
+        for k,v in blocks.items():
+            for i in range(self.aspect_ratio_count):
+                # NOTE: maybe shouldn't be accessing the `_modules` private OrderedDict here ...
+                fm_ar_outconv = self._modules[f'{k}_{i}']
+                bbs, cats = fm_ar_outconv(v)
+                # just need to check bbs or cats here
+                if first_loop:
+                    all_bbs = bbs
+                    all_cats = cats
+                    first_loop = False
+                else:
+                    all_bbs = torch.cat((all_bbs, bbs), dim=1)
+                    all_cats = torch.cat((all_cats, cats), dim=1)
+        return all_bbs, all_cats
 
 
 class BlocksCustomHead(nn.Module):
