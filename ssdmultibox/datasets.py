@@ -196,7 +196,7 @@ class TrainPascalFlatDataset(TrainPascalDataset):
         image_ids = self.get_image_ids()
         image_id = image_ids[idx]
         ann = self.get_annotations()[image_id]
-        bbs = ann[BBS]
+        bbs = np.array(ann[BBS])
         cats = ann[CATS]
 
         image_paths = self.images()
@@ -206,7 +206,7 @@ class TrainPascalFlatDataset(TrainPascalDataset):
         gt_bbs = self.bboxer.scaled_fastai_bbs(bbs, im)
         gt_cats = np.array(cats)
 
-        return image_id, chw_im, gt_bbs, gt_cats
+        return image_id, chw_im, im, bbs, gt_bbs, gt_cats
 
 
 class Bboxer:
@@ -588,14 +588,16 @@ class Bboxer:
         return gt_overlap, gt_idx
 
     @classmethod
-    def get_stacked_gt_bbs_and_cats(cls, scaled_bbs, cats, stacked_anchor_boxes, stacked_intersect, bbs_area):
+    def get_stacked_gt_bbs_and_cats(
+            cls, bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area):
         """
         Returns the gt_bbs and gt_cats based upon the gt_overlaps or if the
         IoU is greater than the THRESH hyperparameter
 
         Args:
-            scaled_bbs (2d array): of fastai scaled bbs
+            bbs (2d array): of raw bbs
             cats (1d array): of category ids
+            im (3d array): raw image array
             stacked_anchor_boxes (2d array): of shape (anchor_bbs_count, bbs_count)
             stacked_intersect (2d array): of shape (bbs_count, anchor_bbs_count)
             bbs_area (1d array): of shape (bbs_count,)
@@ -605,6 +607,7 @@ class Bboxer:
         gt_overlap, gt_idx = cls.get_stacked_gt_overlap_and_idx(
             stacked_anchor_boxes, stacked_intersect, bbs_area)
 
+        scaled_bbs = cls.scaled_fastai_bbs(bbs, im)
         gt_bbs = scaled_bbs[gt_idx]
         gt_cats = cats[gt_idx]
         # the previous line will set the 0 ith class as the gt, so
@@ -619,3 +622,28 @@ class Bboxer:
             gt_cats[neg_idx] = 20
 
         return gt_bbs, gt_cats
+
+    @classmethod
+    def get_stacked_gt(cls, bbs, cats, im, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+        """
+        Wrapper method for getting the gt_bbs and gt_cats based upon what
+        data the Dataset returns
+
+        Args:
+            bbs (2d array): of raw bbs
+            cats (1d array): of category ids
+            im (3d array): raw image array
+            feature_maps (1d array): of integer feature map sizes
+            aspect_ratios (function):
+                that returns an aspect ratios array, fallows signature
+                `aspect_ratios(grid_size=1)`
+        Returns:
+            2 item tuple (2d array of bbs, 1d array of cat ids)
+        """
+        aspect_ratios = aspect_ratios or cls.aspect_ratios
+        scaled_bbs = Bboxer.scaled_fastai_bbs(bbs, im)
+        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(feature_maps, aspect_ratios)
+        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = Bboxer.get_bbs_area(bbs, im)
+        return cls.get_stacked_gt_bbs_and_cats(
+            bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area)

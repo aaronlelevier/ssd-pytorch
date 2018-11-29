@@ -265,10 +265,16 @@ class TrainPascalFlatDatasetTests(BaseTestCase):
         self.dataset = TrainPascalFlatDataset()
 
     def test_getitem(self):
-        image_id, chw_im, gt_bbs, gt_cats = self.dataset[1]
+        image_id, chw_im, im, bbs, gt_bbs, gt_cats = self.dataset[1]
 
         assert image_id == 17
         assert chw_im.shape == (3, SIZE, SIZE)
+        assert im.shape == (364, 480, 3)
+        self.assert_arr_equals(
+            bbs,
+            [[184,  61,  95, 138],
+            [ 89,  77, 314, 259]]
+       )
         self.assert_arr_equals(
             gt_bbs,
             [[0.167582417582418, 0.383333333333333, 0.543369963369963, 0.577916666666667],
@@ -907,17 +913,16 @@ class BboxerTests(BaseTestCase):
 
     def test_get_stacked_gt_bbs_and_cats(self):
         ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
-        bbs = ann['bbs']
+        bbs = np.array(ann['bbs'])
         cats = np.array(ann['cats'])
         im = open_image(ann['image_path'])
-        scaled_bbs = Bboxer.scaled_fastai_bbs(bbs, im)
         stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(
             feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
         stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
         bbs_area = Bboxer.get_bbs_area(bbs, im)
 
         ret_gt_bbs, ret_gt_cats = Bboxer.get_stacked_gt_bbs_and_cats(
-            scaled_bbs, cats, stacked_anchor_boxes, stacked_intersect, bbs_area)
+            bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area)
 
         self.assert_arr_equals(
             ret_gt_bbs,
@@ -928,7 +933,31 @@ class BboxerTests(BaseTestCase):
             [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ]]
         )
 
-        assert ret_gt_bbs.shape == (stacked_anchor_boxes.shape[0], 4)
+        assert ret_gt_bbs.shape == (5, 4)
+        self.assert_arr_equals(
+            ret_gt_cats,
+            [14, 20, 20, 20, 12]
+        )
+
+    def test_get_stacked_gt(self):
+        ann = self.dataset.get_annotations()[TEST_IMAGE_ID]
+        bbs = ann['bbs']
+        cats = np.array(ann['cats'])
+        im = open_image(ann['image_path'])
+
+        ret_gt_bbs, ret_gt_cats = Bboxer.get_stacked_gt(
+            bbs, cats, im, feature_maps=[2,1], aspect_ratios=lambda grid_size:[(1,1)])
+
+        self.assert_arr_equals(
+            ret_gt_bbs,
+            [[0.167582417582418, 0.383333333333333, 0.543369963369963, 0.577916666666667],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ],
+            [0.211538461538462, 0.185416666666667, 0.91974358974359 , 0.83625          ]]
+        )
+
+        assert ret_gt_bbs.shape == (5, 4)
         self.assert_arr_equals(
             ret_gt_cats,
             [14, 20, 20, 20, 12]
