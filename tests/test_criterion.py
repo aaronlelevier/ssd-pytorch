@@ -43,7 +43,7 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         ret = criterion.CatsBCELoss.one_hot_encoding(y)
 
-        assert ret.shape == (4, 9, 21)
+        assert ret.shape == (4, 21)
 
     def test_one_hot_encoding_unsqueezes_if_input_is_1d(self):
         y = torch.LongTensor(4).random_() % NUM_CLASSES
@@ -51,4 +51,4 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         ret = criterion.CatsBCELoss.one_hot_encoding(y)
 
-        assert ret.shape == (4, 1, 21)
+        assert ret.shape == (4, 21)

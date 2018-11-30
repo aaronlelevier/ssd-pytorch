@@ -13,21 +13,19 @@ class CatsBCELoss(nn.Module):
         batch_size = targets.shape[0]
         cats_preds = inputs.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
         gt_idxs = targets != 20
-        return F.cross_entropy(
-            cats_preds[gt_idxs], targets[gt_idxs], reduction='sum')
+        inputs = cats_preds[gt_idxs]
+        targets = targets[gt_idxs]
+        one_hot_targets = self.one_hot_encoding(targets)[:,:-1]
+        return F.binary_cross_entropy_with_logits(inputs, one_hot_targets, reduction='sum')
 
-    # NOTE: not in use, but if we change to F.binary_cross_entropy_with_logits
-    # then it's needed
     @staticmethod
     def one_hot_encoding(y):
         if len(y.shape) == 1:
             y = y.unsqueeze(1)
-        y_onehot = torch.FloatTensor(y.shape[0], y.shape[1], NUM_CLASSES).to(device)
+        y_onehot = torch.FloatTensor(y.shape[0], NUM_CLASSES).to(device)
         y_onehot.zero_()
         y = y.type(torch.long)
-        # expand from shape (4, 1444) to (4, 1444, 1) for ex to work w/ `scatter_`
-        y = y.unsqueeze(-1)
-        return y_onehot.scatter_(2, y, 1)
+        return y_onehot.scatter_(1, y, 1)
 
 
 class BbsL1Loss(nn.Module):
