@@ -73,17 +73,9 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         with pytest.raises(IndexError):
             Predict.single_predict(cls_id, self.preds, index=index)
 
-    def test_get_stacked_bbs_and_cats(self):
-        ret = Predict.get_stacked_bbs_and_cats(self.preds)
-
-        assert len(ret) == 2
-
-        assert ret[0].shape == (4, 11640, 4)
-        assert ret[1].shape == (4, 11640, 20)
-
     def test_single_nms(self):
         cls_id = 0
-        bbs, cats = Predict.get_stacked_bbs_and_cats(self.preds)
+        bbs, cats = self.preds
         item_cats = cats[0]
         item_bbs = bbs[0]
 

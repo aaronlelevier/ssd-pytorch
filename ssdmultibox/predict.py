@@ -39,39 +39,9 @@ class Predict:
         Returns:
             tuple(bbs, scores) or None
         """
-        bbs, cats = cls.get_stacked_bbs_and_cats(preds)
+        bbs, cats = preds
         item_bbs, item_cats = bbs[index], cats[index]
         return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
-
-    @staticmethod
-    def get_stacked_bbs_and_cats(preds):
-        """
-        Returns all stacked bbs and cats from a single mini-batch of
-        predictions
-
-        Args:
-            preds: mini-batch of model preds
-        Returns:
-            tuple (stacked bbs, stacked cats)
-            example shapes:
-                bbs - (4, 11640, 4)
-                cats - (4, 11640, 20)
-        """
-        bbs = torch.cat([
-            preds[i][j][0].reshape(BATCH, -1, 4)
-            for j in range(6) for i in range(6)
-        ], dim=1)
-
-        cats = torch.cat([
-            preds[i][j][1].reshape(BATCH, -1, NUM_CLASSES)[:,:,:-1]
-            for j in range(6) for i in range(6)
-        ], dim=1)
-
-        # remove gradient tracking
-        bbs.detach_()
-        cats.detach_()
-
-        return bbs, cats
 
     @classmethod
     def single_nms(cls, cls_id, item_bbs, item_cats, conf_thresh=CONF_THRESH):
@@ -87,6 +57,9 @@ class Predict:
         Returns:
             tuple ([nms_bbs, 4], [scores]) or None if no matches
         """
+        item_bbs = item_bbs.detach()
+        item_cats = item_cats.detach()
+
         cls_conf, cls_ids = item_cats.max(1)
         # per cls
         cls_conf_thresh_mask = cls_conf.gt(conf_thresh)
