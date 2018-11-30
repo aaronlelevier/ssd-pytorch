@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from torch.utils.data import DataLoader
 
-from ssdmultibox.datasets import BATCH, TrainPascalDataset
+from ssdmultibox.datasets import BATCH, TrainPascalFlatDataset
 from ssdmultibox.models import SSDModel
 
 
@@ -30,7 +30,7 @@ class ModelAndDatasetBaseTestCase(BaseTestCase):
     def setUpClass(cls):
         if not PREDS_CACHE:
             # data
-            dataset = TrainPascalDataset()
+            dataset = TrainPascalFlatDataset()
             dataloader = DataLoader(dataset, batch_size=BATCH, num_workers=0)
             image_ids, ims, gt_bbs, gt_cats = next(iter(dataloader))
             ims, gt_bbs, gt_cats = dataset.to_device(ims, gt_bbs, gt_cats)

@@ -75,11 +75,9 @@ class PascalDataset(Dataset):
         """
         Utility function to put the dataset outputs on the correct device
         """
-        # put data on device
         ims = torch.tensor(ims, dtype=torch.float32).to(device)
-        # put on the correct device
-        gt_bbs = [[torch.tensor(ar, dtype=torch.float32).to(device) for ar in fm] for fm in gt_bbs]
-        gt_cats = [[torch.tensor(ar, dtype=torch.uint8).to(device) for ar in fm] for fm in gt_cats]
+        gt_bbs = torch.tensor(gt_bbs, dtype=torch.float32).to(device)
+        gt_cats = torch.tensor(gt_cats, dtype=torch.long).to(device)
         return ims, gt_bbs, gt_cats
 
     def data(self):

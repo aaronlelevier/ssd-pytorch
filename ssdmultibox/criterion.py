@@ -10,27 +10,14 @@ class CatsBCELoss(nn.Module):
         super().__init__()
 
     def forward(self, inputs, targets):
-        preds = inputs
-        gt_cats = targets
-        loss = torch.tensor(0, dtype=torch.float32).to(device)
-
-        for fm_idx in range(len(preds)):
-            for ar_idx in range(len(preds[fm_idx])):
-                loss.add_(
-                    self._cats_loss(gt_cats[fm_idx][ar_idx], preds[fm_idx][ar_idx][1]))
-        return loss
-
-    def _cats_loss(self, y, yhat):
-        batch_size = y.shape[0]
-        if len(y.shape) == 1:
-            cats_preds = yhat.reshape(batch_size, NUM_CLASSES)[:,:-1]
-        else:
-            cats_preds = yhat.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
-        gt_idxs = y != 20
+        batch_size = targets.shape[0]
+        cats_preds = inputs.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
+        gt_idxs = targets != 20
         return F.cross_entropy(
-            cats_preds[gt_idxs], y[gt_idxs].type(torch.long), reduction='sum')
+            cats_preds[gt_idxs], targets[gt_idxs], reduction='sum')
 
-    # NOTE: not in use ...
+    # NOTE: not in use, but if we change to F.binary_cross_entropy_with_logits
+    # then it's needed
     @staticmethod
     def one_hot_encoding(y):
         if len(y.shape) == 1:
@@ -50,53 +37,28 @@ class BbsL1Loss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        loss =  torch.tensor(0, dtype=torch.float32).to(device)
-        anchor_boxes = Bboxer.anchor_boxes()
-        for fm_idx in range(len(preds)):
-            for ar_idx in range(len(preds[fm_idx])):
-                gt_idxs = gt_cats[fm_idx][ar_idx] != 20
-                loss.add_(
-                    self._bbs_loss(
-                        gt_bbs[fm_idx][ar_idx], preds[fm_idx][ar_idx][0],
-                        gt_idxs, anchor_boxes[fm_idx][ar_idx]))
-        return loss
-
-    def _bbs_loss(self, y, yhat, gt_idxs, anchor_boxes):
-        batch_size = y.shape[0]
-        # reshape
-        y = torch.tensor(y.reshape(batch_size, -1, 4), dtype=torch.float32).to(device)
-        yhat = yhat.reshape(batch_size, -1, 4)
-        # use initial anchor_boxes offsets
-        anchor_boxes = torch.tensor(anchor_boxes, dtype=torch.float32).to(device)
-        yhat = anchor_boxes + yhat
-        # filter for gt indexes
-        y = y[gt_idxs]
-        inputs = yhat[gt_idxs]
-        targets = (y / SIZE)
-        return F.smooth_l1_loss(inputs, targets, reduction='sum')
+        stacked_anchor_boxes = torch.tensor(
+            Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
+        preds_w_offsets =  stacked_anchor_boxes + preds
+        gt_idxs = gt_cats != 20
+        targets = gt_bbs[gt_idxs]
+        inputs = preds_w_offsets[gt_idxs]
+        return F.smooth_l1_loss(inputs, targets.type(inputs.dtype), reduction='sum')
 
 
 class SSDLoss(nn.Module):
-    def __init__(self, alpha=1):
+    def __init__(self, alpha=10):
         super().__init__()
         self.alpha = alpha
         self.bbs_loss = BbsL1Loss()
         self.cats_loss = CatsBCELoss()
 
     def forward(self, inputs, targets):
-        preds = inputs
+        bbs_preds, cats_preds = inputs
         gt_bbs, gt_cats = targets
-        conf = self.cats_loss(preds, gt_cats)
-        loc = self.bbs_loss(preds, (gt_bbs, gt_cats))
-        n = self._matched_gt_cats(gt_cats)
+        conf = self.cats_loss(cats_preds, gt_cats)
+        loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats))
+        n = (gt_cats != 20).sum().type(conf.dtype).to(device)
         print('bbs_loss:', loc.item())
         print('cats_loss:', conf.item())
         return (1/n) * (conf + (self.alpha*loc))
-
-    def _matched_gt_cats(self, gt_cats):
-        n = torch.tensor(0, dtype=torch.float32).to(device)
-        for fm_idx in range(len(gt_cats)):
-            for ar_idx in range(len(gt_cats[fm_idx])):
-                gt_idxs = gt_cats[fm_idx][ar_idx] != 20
-                n += gt_idxs.sum().type(torch.float32).to(device)
-        return n
