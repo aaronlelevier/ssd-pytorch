@@ -32,10 +32,10 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
         ssd_criterion = criterion.SSDLoss()
         targets = (self.gt_bbs, self.gt_cats)
 
-        ret = ssd_criterion(self.preds, targets)
+        ssd_loss, loc_loss, conf_loss = ssd_criterion(self.preds, targets)
 
-        assert isinstance(ret, torch.Tensor)
-        assert ret.item() > 0
+        assert isinstance(ssd_loss, torch.Tensor)
+        assert ssd_loss.item() > 0
 
     def test_one_hot_encoding(self):
         y = torch.LongTensor(4,9).random_() % NUM_CLASSES

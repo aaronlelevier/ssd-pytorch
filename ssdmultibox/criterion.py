@@ -41,9 +41,10 @@ class BbsL1Loss(nn.Module):
             Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
         preds_w_offsets =  stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
-        targets = gt_bbs[gt_idxs]
+        # clamp - b/c these are the bounds of our bbs prediction
+        targets = torch.clamp(gt_bbs[gt_idxs].type(inputs.dtype), min=0, max=1)
         inputs = preds_w_offsets[gt_idxs]
-        return F.smooth_l1_loss(inputs, targets.type(inputs.dtype), reduction='sum')
+        return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
 
 class SSDLoss(nn.Module):
@@ -61,4 +62,5 @@ class SSDLoss(nn.Module):
         n = (gt_cats != 20).sum().type(conf.dtype).to(device)
         print('bbs_loss:', loc.item())
         print('cats_loss:', conf.item())
-        return (1/n) * (conf + (self.alpha*loc))
+        # TODO: added addit returns of loc, conf losses for debugging
+        return (1/n) * (conf + (self.alpha*loc)), loc, conf
