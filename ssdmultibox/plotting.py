@@ -56,7 +56,7 @@ def plot_multiple(dataset):
     plt.tight_layout()
 
 
-def plot_single_detections(dataset, idx, detections, limit=5):
+def plot_single_nms_detections(dataset, idx, detections, limit=5):
     """
     Shows NMS detections of an image
 
@@ -84,3 +84,46 @@ def plot_single_detections(dataset, idx, detections, limit=5):
     # show gt bbs
     for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
+
+
+def plot_single_predictions(dataset, idx, targets):
+    """
+    Plots the gt bb(s) and predicted bbs
+
+    Args:
+        dataset (torch.utils.data.Dataset)
+        idx (int): index of dataset item to show
+        targets (2d array):
+            fastai formatted bbs to plot
+    """
+    image_id, im, gt_bbs, gt_cats = dataset[idx]
+    ann = dataset.get_annotations()[image_id]
+    im = open_image(ann['image_path'])
+    resized_im = cv2.resize(im, (SIZE, SIZE))
+    ax = show_img(resized_im)
+
+    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
+        draw_rect(ax, gt_bb, edgecolor='yellow')
+
+    for i, bb in enumerate(targets):
+        gt_overlap_bb = Bboxer.fastai_bb_to_pascal_bb(bb)* SIZE
+        draw_rect(ax, gt_overlap_bb, edgecolor='red')
+        draw_text(ax, gt_overlap_bb[:2], i, sz=8)
+
+
+def get_anchor_bbs_targets(gt_cats, idx):
+    """
+    Returns a 2d array of the target fastai formatted bbs
+    based upon the gt_cats that aren't background
+
+    Args:
+        gt_cats (3d array): of batch gt_cats
+        idx (int): gt_cats item from the batch to retrieve
+    """
+    gt_cat = torch.tensor(gt_cats[idx])
+    not_bg_mask = gt_cat != 20
+    not_bg_mask = (not_bg_mask == 1).nonzero()
+    not_bg_mask = not_bg_mask.squeeze(1)
+    stacked_anchor_boxes = torch.tensor(
+        Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
+    return stacked_anchor_boxes[not_bg_mask]
