@@ -40,8 +40,8 @@ class BbsL1Loss(nn.Module):
         preds_w_offsets =  stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
         # clamp - b/c these are the bounds of our bbs prediction
-        targets = torch.clamp(gt_bbs[gt_idxs].type(inputs.dtype), min=0, max=1)
         inputs = preds_w_offsets[gt_idxs]
+        targets = gt_bbs[gt_idxs].type(inputs.dtype)
         return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
 

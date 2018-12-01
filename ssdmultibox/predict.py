@@ -1,6 +1,6 @@
 import torch
 
-from ssdmultibox.datasets import BATCH, NUM_CLASSES, device
+from ssdmultibox.datasets import BATCH, NUM_CLASSES, device, Bboxer
 
 CONF_THRESH = 0.1
 
@@ -39,6 +39,14 @@ class Predict:
         Returns:
             tuple(bbs, scores) or None
         """
+
+        # this adds the AnchorBox offsets to the preds
+        bbs_preds, cats_preds = preds
+        stacked_anchor_boxes = torch.tensor(
+            Bboxer.get_stacked_anchor_boxes(), dtype=bbs_preds.dtype).to(device)
+        bbs_preds_w_offsets = stacked_anchor_boxes  + bbs_preds
+        preds = (bbs_preds_w_offsets, cats_preds)
+
         bbs, cats = preds
         item_bbs, item_cats = bbs[index], cats[index]
         return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)

@@ -56,7 +56,16 @@ def plot_multiple(dataset):
     plt.tight_layout()
 
 
-def plot_single_detections(dataset, ids, detections):
+def plot_single_detections(dataset, idx, detections, limit=5):
+    """
+    Shows NMS detections of an image
+
+    Args:
+        dataset (torch.utils.data.Dataset)
+        idx (int): index of dataset item to show
+        detections (3 item tuple): return value from `Predict.predict_all`
+        limit (int:optional): use to limit the number of detections shown
+    """
     image_id, im, gt_bbs, gt_cats = dataset[idx]
     ann = dataset.get_annotations()[image_id]
     # image
@@ -65,19 +74,13 @@ def plot_single_detections(dataset, ids, detections):
     ax = show_img(resized_im)
     # detections
     if detections:
-        detected_bbs, _ = detections
-        for bb in detected_bbs:
-            draw_rect(ax, Bboxer.fastai_bb_to_pascal_bb(bb*SIZE))
-
-
-def show_img_predictions(bbs, scores, ann):
-    im = open_image(ann['image_path'])
-    resized_im = cv2.resize(im, (SIZE, SIZE))
-    ax = show_img(resized_im)
-    for bb, score in zip(bbs, scores):
-        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*SIZE)
-        draw_rect(ax, pascal_bb)
-        draw_text(ax, [bb[1],bb[0]], "{:4f}".format(score.item()), sz=8)
-    # gt bbs
+        detected_bbs, scores, ids = detections
+        for i, (bb, score, cls_id) in enumerate(zip(detected_bbs, scores, ids)):
+            pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*SIZE)
+            draw_rect(ax, pascal_bb)
+            draw_text(ax, pascal_bb[:2], f'{score.item()}'[:6], sz=9)
+            if i == limit-1:
+                break
+    # show gt bbs
     for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
