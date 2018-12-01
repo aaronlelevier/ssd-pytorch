@@ -121,6 +121,9 @@ class PascalDataset(Dataset):
     def get_image_ids(self):
         return list(self.get_filenames())
 
+    def get_image_id_idx_map(self):
+        return {x:i for i,x in enumerate(self.get_image_ids())}
+
     def get_annotations(self):
         """
         Returns:

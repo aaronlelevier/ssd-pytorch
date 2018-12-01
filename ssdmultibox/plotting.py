@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import torch
 
 import matplotlib.pyplot as plt
 from matplotlib import patches, patheffects
@@ -127,3 +128,18 @@ def get_anchor_bbs_targets(gt_cats, idx):
     stacked_anchor_boxes = torch.tensor(
         Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
     return stacked_anchor_boxes[not_bg_mask]
+
+
+def plot_anchor_bbs_targets_from_preds(image_ids, idx, cats_preds, gt_cats):
+    image_id = image_ids[idx].item()
+    dataset_idx = Bboxer().get_image_id_idx_map()[image_id]
+    plot_single_predictions(
+        train_dataset, dataset_idx,
+        targets=get_anchor_bbs_targets(cats_preds, gt_cats, idx))
+
+
+def plot_nms_preds(image_ids, idx, preds, limit=5):
+    image_id = image_ids[idx].item()
+    dataset_idx = Bboxer().get_image_id_idx_map()[image_id]
+    boxes, scores, ids = Predict.predict_all(preds, index=idx)
+    plot_single_predictions(train_dataset, dataset_idx, boxes[:limit])

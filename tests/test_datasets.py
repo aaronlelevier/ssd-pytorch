@@ -218,6 +218,13 @@ class PascalDatasetTests(BaseTestCase):
 
         assert ret[:3] == [12, 17, 23]
 
+    def test_get_image_id_idx_map(self):
+        ret = self.dataset.get_image_id_idx_map()
+
+        assert ret[12] == 0
+        assert ret[17] == 1
+        assert ret[8995] == 2247
+
     def test_get_annotations(self):
         ret = self.dataset.get_annotations()
 
