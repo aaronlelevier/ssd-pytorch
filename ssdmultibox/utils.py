@@ -20,4 +20,6 @@ def save_model(model, dirname=None):
     """
     dirname = dirname or os.getcwd()
     dt_str = datetime.datetime.now().isoformat()[:19]
-    torch.save(model, os.path.join(dirname, f'model-{dt_str}.cpkt'))
+    path = os.path.join(dirname, f'model-{dt_str}.cpkt')
+    print(f'model saved at: {path}')
+    torch.save(model, path)
