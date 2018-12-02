@@ -1,7 +1,9 @@
-import cv2
-import os
 import datetime
+import os
+import platform
+import subprocess
 
+import cv2
 import torch
 
 
@@ -23,3 +25,16 @@ def save_model(model, dirname=None):
     path = os.path.join(dirname, f'model-{dt_str}.cpkt')
     print(f'model saved at: {path}')
     torch.save(model, path)
+
+
+def get_cpu_count():
+    "Returns the number of CPUs"
+    system = platform.system()
+    if system == 'Darwin':
+        output = subprocess.check_output(['sysctl', '-n', 'hw.ncpu'])
+    elif system == 'Linux':
+        output = subprocess.check_output(['nproc', '--all'])
+    else:
+        raise AssertionError('unsupported system. Only Mac OSX and Linux')
+
+    return int(output.decode('utf8').rstrip('\n'))
