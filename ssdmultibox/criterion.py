@@ -31,13 +31,13 @@ class CatsBCELoss(nn.Module):
 class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
+        self.stacked_anchor_boxes = torch.tensor(
+            Bboxer.get_stacked_anchor_boxes(), dtype=torch.float32).to(device)*SIZE
 
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        stacked_anchor_boxes = torch.tensor(
-            Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
-        preds_w_offsets =  stacked_anchor_boxes + preds
+        preds_w_offsets =  self.stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
         inputs = preds_w_offsets[gt_idxs]
         targets = gt_bbs[gt_idxs].type(inputs.dtype)

@@ -193,6 +193,13 @@ class TrainPascalFlatDataset(TrainPascalDataset):
     and not duplicated per feature_map/aspect_ratio
     """
     def __getitem__(self, idx):
+        """
+        Returns:
+            image_id (int)
+            chw_im (3d array): CHW of image
+            gt_bbs (2d array): (n bbs, 4)
+            gt_cats (1d array): (n cats,)
+        """
         image_ids = self.get_image_ids()
         image_id = image_ids[idx]
         ann = self.get_annotations()[image_id]
@@ -204,6 +211,7 @@ class TrainPascalFlatDataset(TrainPascalDataset):
         chw_im = self.scaled_im_by_size_and_chw_format(im)
 
         gt_bbs, gt_cats = Bboxer.get_stacked_gt(bbs, cats, im)
+        gt_bbs *= SIZE
 
         return image_id, chw_im, gt_bbs, gt_cats
 
@@ -640,9 +648,9 @@ class Bboxer:
             2 item tuple (2d array of bbs, 1d array of cat ids)
         """
         aspect_ratios = aspect_ratios or cls.aspect_ratios
-        scaled_bbs = Bboxer.scaled_fastai_bbs(bbs, im)
-        stacked_anchor_boxes = Bboxer.get_stacked_anchor_boxes(feature_maps, aspect_ratios)
-        stacked_intersect = Bboxer.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
-        bbs_area = Bboxer.get_bbs_area(bbs, im)
+        scaled_bbs = cls.scaled_fastai_bbs(bbs, im)
+        stacked_anchor_boxes = cls.get_stacked_anchor_boxes(feature_maps, aspect_ratios)
+        stacked_intersect = cls.get_stacked_intersection(bbs, im, stacked_anchor_boxes)
+        bbs_area = cls.get_bbs_area(bbs, im)
         return cls.get_stacked_gt_bbs_and_cats(
             bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area)
