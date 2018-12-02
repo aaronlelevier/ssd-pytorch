@@ -39,13 +39,13 @@ class BbsL1Loss(nn.Module):
         gt_bbs, gt_cats = targets
         preds_w_offsets =  self.stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
-        inputs = preds_w_offsets[gt_idxs]
+        inputs = torch.clamp(preds_w_offsets[gt_idxs], min=0, max=SIZE)
         targets = gt_bbs[gt_idxs].type(inputs.dtype)
         return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
 
 class SSDLoss(nn.Module):
-    def __init__(self, alpha=10):
+    def __init__(self, alpha=1):
         super().__init__()
         self.alpha = alpha
         self.bbs_loss = BbsL1Loss()
@@ -57,6 +57,7 @@ class SSDLoss(nn.Module):
         conf = self.cats_loss(cats_preds, gt_cats)
         loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats))
         n = (gt_cats != 20).sum().type(conf.dtype).to(device)
+        print('n:', n.item())
         print('bbs_loss:', loc.item())
         print('cats_loss:', conf.item())
         # TODO: added addit returns of loc, conf losses for debugging
