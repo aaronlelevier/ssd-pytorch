@@ -112,7 +112,7 @@ def plot_single_predictions(dataset, idx, targets):
         draw_text(ax, gt_overlap_bb[:2], i, sz=8)
 
 
-def get_anchor_bbs_targets(gt_cats, idx):
+def get_anchor_bbs_targets(bbs_preds, gt_cats, idx):
     """
     Returns a 2d array of the target fastai formatted bbs
     based upon the gt_cats that aren't background
@@ -126,16 +126,16 @@ def get_anchor_bbs_targets(gt_cats, idx):
     not_bg_mask = (not_bg_mask == 1).nonzero()
     not_bg_mask = not_bg_mask.squeeze(1)
     stacked_anchor_boxes = torch.tensor(
-        Bboxer.get_stacked_anchor_boxes(), dtype=preds.dtype).to(device)
+        Bboxer.get_stacked_anchor_boxes(), dtype=bbs_preds.dtype).to(device)*SIZE
     return stacked_anchor_boxes[not_bg_mask]
 
 
-def plot_anchor_bbs_targets_from_preds(image_ids, idx, cats_preds, gt_cats):
+def plot_anchor_bbs_targets_from_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
     image_id = image_ids[idx].item()
-    dataset_idx = Bboxer().get_image_id_idx_map()[image_id]
+    dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         train_dataset, dataset_idx,
-        targets=get_anchor_bbs_targets(cats_preds, gt_cats, idx))
+        targets=get_anchor_bbs_targets(bbs_preds, gt_cats, idx))
 
 
 def plot_nms_preds(image_ids, idx, preds, limit=5):

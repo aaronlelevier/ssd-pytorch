@@ -2,6 +2,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from ssdmultibox.datasets import NUM_CLASSES, SIZE, device, Bboxer
+from ssdmultibox.config import cfg
+
 
 class CatsBCELoss(nn.Module):
     def __init__(self, hard_mining_ratio=3):
@@ -50,7 +52,7 @@ class BbsL1Loss(nn.Module):
 
 
 class SSDLoss(nn.Module):
-    def __init__(self, alpha=1):
+    def __init__(self, alpha=cfg.SSD_LOSS_ALPHA):
         super().__init__()
         self.alpha = alpha
         self.bbs_loss = BbsL1Loss()
@@ -60,9 +62,9 @@ class SSDLoss(nn.Module):
         bbs_preds, cats_preds = inputs
         gt_bbs, gt_cats = targets
         conf = self.cats_loss(cats_preds, gt_cats)
-        loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats))
+        loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats)) * self.alpha
         n = (gt_cats != 20).sum().type(conf.dtype).to(device)
         print('n: {} bbs_loss: {:.4f} cats_loss: {:.4f}'.format(
             n.item(), loc.item(), conf.item()))
         # TODO: added addit returns of loc, conf losses for debugging
-        return (1/n) * (conf + (self.alpha*loc)), loc, conf
+        return (1/n) * (conf+loc), loc, conf

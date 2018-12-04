@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 HOME_DIR = os.path.expanduser('~')
 
 if HOME_DIR.startswith('/Users/alelevier'):
@@ -16,14 +15,49 @@ else: # kaggle
 IMAGE_PATH = Path(DATA_DIR/'JPEGImages/')
 
 
-class SSD_LOSS:
-    ALPHA = 1
+class InvalidConfigError(Exception):
+    def __init__(self, key):
+        message = f'{key} is not a valid global config'
+        super().__init__(message)
 
-class NMS:
-    OVERLAP = 0.5
-    TOP_K = 200
-    CONF_THRESH = 0.1
 
-class CONFIG:
-    SSD_LOSS = SSD_LOSS()
-    NMS = NMS()
+class _Config:
+    "Global values for Model config"
+
+    # SSD
+    SSD_LOSS_ALPHA = 1
+    # NMS
+    NMS_OVERLAP = 0.5
+    NMS_TOP_K = 200
+    NMS_CONF_THRESH = 0.1
+
+    def __init__(self, config=None):
+        """
+        Can override global defaults for Model config
+
+        Args:
+            config (dict): dict of model config params to override
+        """
+        config = config or {}
+        self._set(config)
+
+    def update(self, config):
+        """
+        Can override global defaults for Model config
+
+        Args:
+            config (dict): dict of model config params to override
+        """
+        self._set(config)
+
+    def _set(self, config):
+        for k,v in config.items():
+            if not hasattr(self, k):
+                raise InvalidConfigError(k)
+
+            setattr(self, k, v)
+
+
+# singleton / model hyper params are global
+# override here for changing global default hyper params
+cfg = _Config()
