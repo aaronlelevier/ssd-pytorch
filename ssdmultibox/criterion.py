@@ -1,22 +1,27 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 from ssdmultibox.datasets import NUM_CLASSES, SIZE, device, Bboxer
 
-
 class CatsBCELoss(nn.Module):
-    def __init__(self):
+    def __init__(self, hard_mining_ratio=3):
         super().__init__()
+        self.hard_mining_ratio = hard_mining_ratio
 
     def forward(self, inputs, targets):
-        batch_size = targets.shape[0]
-        cats_preds = inputs.reshape(batch_size, -1, NUM_CLASSES)[:,:,:-1]
-        gt_idxs = targets != 20
-        inputs = cats_preds[gt_idxs]
-        targets = targets[gt_idxs]
-        one_hot_targets = self.one_hot_encoding(targets)[:,:-1]
-        return F.binary_cross_entropy_with_logits(inputs, one_hot_targets, reduction='sum')
+        """
+        Calculates the categorical loss of the gt_cats and hard negative mining
+        """
+        pos_idxs = targets != 20
+        neg_idxs = targets == 20
+        neg_loss = F.cross_entropy(inputs[neg_idxs], targets[neg_idxs], reduction='none')
+        neg_loss_sorted, _ = neg_loss.sort(descending=True)
+        neg_hard_mining_count = pos_idxs.sum().item() * self.hard_mining_ratio
+        neg_hard_mining_loss = neg_loss_sorted[:neg_hard_mining_count]
+        pos_loss = F.cross_entropy(inputs[pos_idxs], targets[pos_idxs], reduction='none')
+        print('pos_loss: {:.4f} neg_hard_mining_loss: {:.4f}'.format(
+            pos_loss.sum().item(), neg_hard_mining_loss.sum().item()))
+        return torch.cat((pos_loss, neg_hard_mining_loss)).sum()
 
     @staticmethod
     def one_hot_encoding(y):
@@ -57,8 +62,7 @@ class SSDLoss(nn.Module):
         conf = self.cats_loss(cats_preds, gt_cats)
         loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats))
         n = (gt_cats != 20).sum().type(conf.dtype).to(device)
-        print('n:', n.item())
-        print('bbs_loss:', loc.item())
-        print('cats_loss:', conf.item())
+        print('n: {} bbs_loss: {:.4f} cats_loss: {:.4f}'.format(
+            n.item(), loc.item(), conf.item()))
         # TODO: added addit returns of loc, conf losses for debugging
         return (1/n) * (conf + (self.alpha*loc)), loc, conf
