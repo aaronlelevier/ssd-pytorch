@@ -4,7 +4,7 @@ import torch
 
 import matplotlib.pyplot as plt
 from matplotlib import patches, patheffects
-from ssdmultibox.datasets import SIZE, Bboxer
+from ssdmultibox.datasets import SIZE, Bboxer, device
 from ssdmultibox.utils import open_image
 
 
@@ -107,7 +107,7 @@ def plot_single_predictions(dataset, idx, targets):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
     for i, bb in enumerate(targets):
-        gt_overlap_bb = Bboxer.fastai_bb_to_pascal_bb(bb)* SIZE
+        gt_overlap_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
         draw_rect(ax, gt_overlap_bb, edgecolor='red')
         draw_text(ax, gt_overlap_bb[:2], i, sz=8)
 
@@ -134,12 +134,12 @@ def plot_anchor_bbs_targets_from_preds(dataset, image_ids, idx, bbs_preds, gt_ca
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
-        train_dataset, dataset_idx,
+        dataset, dataset_idx,
         targets=get_anchor_bbs_targets(bbs_preds, gt_cats, idx))
 
 
-def plot_nms_preds(image_ids, idx, preds, limit=5):
+def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
     image_id = image_ids[idx].item()
-    dataset_idx = Bboxer().get_image_id_idx_map()[image_id]
+    dataset_idx = dataset.get_image_id_idx_map()[image_id]
     boxes, scores, ids = Predict.predict_all(preds, index=idx)
     plot_single_predictions(train_dataset, dataset_idx, boxes[:limit])

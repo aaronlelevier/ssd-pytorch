@@ -1,6 +1,6 @@
 import torch
 
-from ssdmultibox.datasets import BATCH, NUM_CLASSES, device, Bboxer
+from ssdmultibox.datasets import BATCH, NUM_CLASSES, device, Bboxer, SIZE
 
 CONF_THRESH = 0.1
 
@@ -46,7 +46,7 @@ class Predict:
         # class 20, background is ignored
         cats_preds = cats_preds[:,:,:-1]
         stacked_anchor_boxes = torch.tensor(
-            Bboxer.get_stacked_anchor_boxes(), dtype=bbs_preds.dtype).to(device)
+            Bboxer.get_stacked_anchor_boxes(), dtype=bbs_preds.dtype).to(device)*SIZE
         bbs_preds_w_offsets = stacked_anchor_boxes  + bbs_preds
         preds = (bbs_preds_w_offsets, cats_preds)
 
