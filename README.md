@@ -1,4 +1,4 @@
-# SsdMultibox
+# SSD Object Detection with PyTorch
 
 This library provides utility classes for more easily performing [SSD Multibox Object Detection](https://arxiv.org/pdf/1512.02325.pdf) in [PyTorch](https://pytorch.org/)
 
