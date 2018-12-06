@@ -1,8 +1,9 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from ssdmultibox.datasets import NUM_CLASSES, SIZE, device, Bboxer
+
 from ssdmultibox.config import cfg
+from ssdmultibox.datasets import NUM_CLASSES, SIZE, TensorBboxer, device
 
 
 class CatsBCELoss(nn.Module):
@@ -38,8 +39,7 @@ class CatsBCELoss(nn.Module):
 class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.stacked_anchor_boxes = torch.tensor(
-            Bboxer.get_stacked_anchor_boxes(), dtype=torch.float32).to(device)*SIZE
+        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
 
     def forward(self, inputs, targets):
         preds = inputs

@@ -9,11 +9,15 @@ from ssdmultibox.models import SSDModel
 
 class BaseTestCase(unittest.TestCase):
 
-    def assert_arr_equals(self, ret, raw_ret):
+    def assert_arr_equals(self, ret, raw_ret, msg=""):
+        error_msg = f"\nret:\n{ret}\nraw_ret:\n{raw_ret}"
+        if msg:
+            error_msg += f"\n{msg}"
+
         assert np.isclose(
                 np.array(ret, dtype=np.float16),
                 np.array(raw_ret, dtype=np.float16)
-            ).all(), f"\nret:\n{ret}\nraw_ret:\n{raw_ret}"
+            ).all(), error_msg
 
 
 PREDS_CACHE = {}

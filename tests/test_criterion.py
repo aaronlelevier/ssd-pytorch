@@ -3,6 +3,7 @@ import unittest
 import torch
 
 from ssdmultibox import criterion
+from ssdmultibox.config import cfg
 from ssdmultibox.datasets import NUM_CLASSES
 from tests.base import ModelAndDatasetBaseTestCase
 
@@ -18,6 +19,16 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         assert isinstance(ret, torch.Tensor)
         assert ret.item() > 0
+
+    def test_bbs_loss__anchor_boxes_are_normalized_by_size(self):
+        bbs_criterion = criterion.BbsL1Loss()
+
+        # the last anchor box is a feature map cell of size 1
+        # so it's dimentions should be the NORMALIZED_SIZE
+        self.assert_arr_equals(
+            bbs_criterion.stacked_anchor_boxes[-1],
+            [0, 0, cfg.NORMALIZED_SIZE, cfg.NORMALIZED_SIZE]
+        )
 
     def test_cats_loss(self):
         cats_criterion = criterion.CatsBCELoss()

@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ssdmultibox import config
+from ssdmultibox.config import cfg
 from ssdmultibox.utils import open_image
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -654,3 +655,11 @@ class Bboxer:
         bbs_area = cls.get_bbs_area(bbs, im)
         return cls.get_stacked_gt_bbs_and_cats(
             bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area)
+
+
+class TensorBboxer(Bboxer):
+
+    @classmethod
+    def get_stacked_anchor_boxes(cls, feature_maps=FEATURE_MAPS, aspect_ratios=None):
+        bbs = super().get_stacked_anchor_boxes(feature_maps, aspect_ratios)
+        return torch.tensor(bbs, dtype=torch.float32).to(device)*cfg.NORMALIZED_SIZE

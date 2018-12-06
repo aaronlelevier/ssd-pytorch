@@ -5,8 +5,10 @@ import pytest
 import torch
 
 from ssdmultibox import config
-from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, PascalDataset, TrainPascalFlatDataset,
-                                  TrainPascalDataset, FEATURE_MAPS)
+from ssdmultibox.config import cfg
+from ssdmultibox.datasets import (FEATURE_MAPS, NUM_CLASSES, SIZE, Bboxer,
+                                  PascalDataset, TensorBboxer,
+                                  TrainPascalDataset, TrainPascalFlatDataset)
 from ssdmultibox.utils import open_image
 from tests.base import BaseTestCase
 
@@ -974,4 +976,18 @@ class BboxerTests(BaseTestCase):
         self.assert_arr_equals(
             ret_gt_cats,
             [14, 20, 20, 20, 12]
+        )
+
+class TensorBboxerTests(BaseTestCase):
+
+    def test_get_stacked_anchor_boxes(self):
+        ret = TensorBboxer.get_stacked_anchor_boxes()
+
+        assert cfg.NORMALIZED_SIZE/FEATURE_MAPS[0] == 7.894736842105263, \
+            "the first anchor box should be the size of a the first feature cell"
+        self.assert_arr_equals(
+            ret[0], [0, 0, 7.894736842105263, 7.894736842105263])
+        self.assert_arr_equals(
+            ret[-1],
+            [0, 0, cfg.NORMALIZED_SIZE, cfg.NORMALIZED_SIZE]
         )

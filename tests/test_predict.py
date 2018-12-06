@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 import torch
 
-from ssdmultibox.datasets import NUM_CLASSES, Bboxer
+from ssdmultibox.config import cfg
+from ssdmultibox.datasets import FEATURE_MAPS, NUM_CLASSES, Bboxer
 from ssdmultibox.predict import CONF_THRESH, Predict
 from tests.base import BaseTestCase, ModelAndDatasetBaseTestCase
 
@@ -39,6 +40,11 @@ class PredictTests(ModelAndDatasetBaseTestCase):
 
         assert mock_single_nms.called
         assert mock_single_nms.call_args[0][0] == cls_id
+        self.assert_arr_equals(
+            [int(x) for x in mock_single_nms.call_args[0][1][0]],
+            [0, 0, 7, 7],
+            msg=f"should be the normalized_size / feature_map[0] or {int(cfg.NORMALIZED_SIZE/FEATURE_MAPS[0])}"
+        )
         assert mock_single_nms.call_args[0][-1] == conf_thresh
 
     def test_single_predict__returns_correct_shapes(self):

@@ -1,10 +1,11 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-import matplotlib.pyplot as plt
 from matplotlib import patches, patheffects
-from ssdmultibox.datasets import SIZE, Bboxer, device
+
+from ssdmultibox.datasets import SIZE, Bboxer, TensorBboxer, device
+from ssdmultibox.predict import Predict
 from ssdmultibox.utils import open_image
 
 
@@ -112,7 +113,7 @@ def plot_single_predictions(dataset, idx, targets):
         draw_text(ax, gt_overlap_bb[:2], i, sz=8)
 
 
-def get_anchor_bbs_targets(bbs_preds, gt_cats, idx):
+def get_targets(gt_cats, idx, bbs_preds=None):
     """
     Returns a 2d array of the target fastai formatted bbs
     based upon the gt_cats that aren't background
@@ -125,21 +126,35 @@ def get_anchor_bbs_targets(bbs_preds, gt_cats, idx):
     not_bg_mask = gt_cat != 20
     not_bg_mask = (not_bg_mask == 1).nonzero()
     not_bg_mask = not_bg_mask.squeeze(1)
-    stacked_anchor_boxes = torch.tensor(
-        Bboxer.get_stacked_anchor_boxes(), dtype=bbs_preds.dtype).to(device)*SIZE
-    return stacked_anchor_boxes[not_bg_mask]
+    stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+    bbs = stacked_anchor_boxes[not_bg_mask]
+    if isinstance(bbs_preds, torch.Tensor):
+        bbs += bbs_preds[idx][not_bg_mask]
+    return bbs
 
 
-def plot_anchor_bbs_targets_from_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
+def plot_anchor_bbs(dataset, image_ids, idx, gt_cats):
+    "Plots the ground truth anchor boxes"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_anchor_bbs_targets(bbs_preds, gt_cats, idx))
+        targets=get_targets(gt_cats, idx))
 
 
-def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
+def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
+    "Plots the predictions based on the ground truth anchor box offsets"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
-    boxes, scores, ids = Predict.predict_all(preds, index=idx)
-    plot_single_predictions(train_dataset, dataset_idx, boxes[:limit])
+    plot_single_predictions(
+        dataset, dataset_idx,
+        targets=get_targets(gt_cats, idx, bbs_preds))
+
+
+# TODO: might be broken and plotting the wrong NMS?
+def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
+    "Plots NMS predictions"
+    image_id = image_ids[idx].item()
+    dataset_idx = dataset.get_image_id_idx_map()[image_id]
+    boxes, *_ = Predict.predict_all(preds, index=idx)
+    plot_single_predictions(dataset, dataset_idx, boxes[:limit])

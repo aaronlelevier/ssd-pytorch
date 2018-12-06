@@ -24,6 +24,7 @@ class InvalidConfigError(Exception):
 class _Config:
     "Global values for Model config"
 
+    NORMALIZED_SIZE = 300
     # SSD
     SSD_LOSS_ALPHA = 1
     # NMS
