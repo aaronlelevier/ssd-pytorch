@@ -1,12 +1,18 @@
+"""
+NMS final predictions module
+"""
 import torch
 
-from ssdmultibox.datasets import (NUM_CLASSES, SIZE, Bboxer, TensorBboxer,
-                                  device)
+from ssdmultibox.bboxer import TensorBboxer
+from ssdmultibox.datasets import NUM_CLASSES, device
 
 CONF_THRESH = 0.1
 
 
 class Predict:
+    """
+    Methods for making NMS predictions
+    """
 
     @classmethod
     def predict_all(cls, preds, index=0, conf_thresh=CONF_THRESH):

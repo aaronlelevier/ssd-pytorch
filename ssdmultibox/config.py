@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+import torch
+
 HOME_DIR = os.path.expanduser('~')
 
 if HOME_DIR.startswith('/Users/alelevier'):
@@ -24,6 +26,11 @@ class InvalidConfigError(Exception):
 class _Config:
     "Global values for Model config"
 
+    SIZE = 300
+    NUM_CLASSES = 21
+    # IoU threshold
+    THRESH = 0.5
+    FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
     NORMALIZED_SIZE = 300
     # SSD
     SSD_LOSS_ALPHA = 1
@@ -31,6 +38,8 @@ class _Config:
     NMS_OVERLAP = 0.5
     NMS_TOP_K = 200
     NMS_CONF_THRESH = 0.1
+
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def __init__(self, config=None):
         """

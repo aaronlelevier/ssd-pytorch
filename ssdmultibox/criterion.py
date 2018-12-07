@@ -2,8 +2,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ssdmultibox.bboxer import TensorBboxer
 from ssdmultibox.config import cfg
-from ssdmultibox.datasets import NUM_CLASSES, SIZE, TensorBboxer, device
+from ssdmultibox.datasets import NUM_CLASSES, SIZE, device
 
 
 class CatsBCELoss(nn.Module):
