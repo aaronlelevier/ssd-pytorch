@@ -9,6 +9,7 @@ matplotlib
 isort==4.3.4
 jupyter
 notebook
+pylint
 
 # testing
 pytest==3.7.2
