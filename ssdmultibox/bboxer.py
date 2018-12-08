@@ -460,4 +460,4 @@ class TensorBboxer(Bboxer):
     def get_stacked_anchor_boxes(cls, feature_maps=None, aspect_ratios=None):
         feature_maps = feature_maps or cfg.FEATURE_MAPS
         bbs = super().get_stacked_anchor_boxes(feature_maps, aspect_ratios)
-        return torch.tensor(bbs, dtype=torch.float32).to(cfg.DEVICE)*cfg.NORMALIZED_SIZE
+        return torch.tensor(bbs, dtype=torch.float32).to(cfg.DEVICE)

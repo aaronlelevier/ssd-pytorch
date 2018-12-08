@@ -27,7 +27,7 @@ class _Config:
     "Global values for Model config"
 
     SIZE = 300
-    NORMALIZED_SIZE = 300
+    NORMALIZED_SIZE = 1
     NUM_CLASSES = 21
     # IoU threshold
     THRESH = 0.5
