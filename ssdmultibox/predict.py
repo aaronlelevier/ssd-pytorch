@@ -16,6 +16,16 @@ class Predict:
 
     @classmethod
     def predict_all(cls, preds, index=0, conf_thresh=CONF_THRESH):
+        """
+        Calculates NMS predictions for all object classes
+
+        Returns:
+            3 item tuple (
+                bbs: 2d torch.Tensor
+                scores: 1d torch.Tensor
+                cls ids: 1d torch.Tensor
+            )
+        """
         bbs = torch.empty(0, dtype=torch.float).to(device)
         scores = torch.empty(0, dtype=torch.float).to(device)
         cls_ids = torch.empty(0, dtype=torch.long).to(device)

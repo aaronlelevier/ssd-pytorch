@@ -40,7 +40,7 @@ class Bboxer:
         return cls.hw2corners(centers, hw)
 
     @classmethod
-    def anchor_boxes(cls, feature_maps=cfg.FEATURE_MAPS, aspect_ratios=None):
+    def anchor_boxes(cls, feature_maps=None, aspect_ratios=None):
         """
         Return 6x6 all feature_map by aspect_ratio anchor boxes
 
@@ -50,6 +50,7 @@ class Bboxer:
                 that returns an aspect ratios array, fallows signature
                 `aspect_ratios(grid_size=1)`
         """
+        feature_maps = feature_maps or cfg.FEATURE_MAPS
         aspect_ratios = aspect_ratios or cls.aspect_ratios
         boxes = []
         for i in range(len(feature_maps)):
@@ -274,7 +275,7 @@ class Bboxer:
     # stacked - in the Bboxer class for now..
 
     @classmethod
-    def get_stacked_anchor_boxes(cls, feature_maps=cfg.FEATURE_MAPS, aspect_ratios=None):
+    def get_stacked_anchor_boxes(cls, feature_maps=None, aspect_ratios=None):
         """
         Return stacked anchor bbs coordinates for all feature_map
         by aspect_ratio anchor boxes. For anchor bbs, the coordinates
@@ -288,10 +289,11 @@ class Bboxer:
         Returns:
             (2d array): of shape (anchor_bbs_count, 4)
         """
+        feature_maps = feature_maps or cfg.FEATURE_MAPS
         aspect_ratios = aspect_ratios or cls.aspect_ratios
         boxes = None
-        for i in range(len(feature_maps)):
-            grid_size = feature_maps[i]
+        for i, fm in enumerate(feature_maps):
+            grid_size = fm
             for aspect_ratio in aspect_ratios(grid_size):
                 arr = np.clip(cls.anchor_corners(grid_size, aspect_ratio), 0, 1)
                 if not isinstance(boxes, np.ndarray):
@@ -426,7 +428,7 @@ class Bboxer:
         return gt_bbs, gt_cats
 
     @classmethod
-    def get_stacked_gt(cls, bbs, cats, im, feature_maps=cfg.FEATURE_MAPS, aspect_ratios=None):
+    def get_stacked_gt(cls, bbs, cats, im, feature_maps=None, aspect_ratios=None):
         """
         Wrapper method for getting the gt_bbs and gt_cats based upon what
         data the Dataset returns
@@ -442,6 +444,7 @@ class Bboxer:
         Returns:
             2 item tuple (2d array of bbs, 1d array of cat ids)
         """
+        feature_maps = feature_maps or cfg.FEATURE_MAPS
         aspect_ratios = aspect_ratios or cls.aspect_ratios
         scaled_bbs = cls.scaled_fastai_bbs(bbs, im)
         stacked_anchor_boxes = cls.get_stacked_anchor_boxes(feature_maps, aspect_ratios)

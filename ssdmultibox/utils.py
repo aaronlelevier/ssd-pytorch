@@ -12,7 +12,7 @@ def open_image(image_path):
     return cv2.imread(image_path, flags)/255
 
 
-def save_model(model, dirname=None):
+def save_model(model, dirname='model_checkpoints/'):
     """
     Saves a torch nn.Module
 
