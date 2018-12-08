@@ -19,12 +19,15 @@ class CatsBCELoss(nn.Module):
         pos_idxs = targets != 20
         neg_idxs = targets == 20
         neg_loss = F.cross_entropy(inputs[neg_idxs], targets[neg_idxs], reduction='none')
+
         neg_loss_sorted, _ = neg_loss.sort(descending=True)
         neg_hard_mining_count = pos_idxs.sum().item() * self.hard_mining_ratio
         neg_hard_mining_loss = neg_loss_sorted[:neg_hard_mining_count]
         pos_loss = F.cross_entropy(inputs[pos_idxs], targets[pos_idxs], reduction='none')
+
         print('pos_loss: {:.4f} neg_hard_mining_loss: {:.4f}'.format(
             pos_loss.sum().item(), neg_hard_mining_loss.sum().item()))
+
         return torch.cat((pos_loss, neg_hard_mining_loss)).sum()
 
     @staticmethod
@@ -45,7 +48,7 @@ class BbsL1Loss(nn.Module):
     def forward(self, inputs, targets):
         preds = inputs
         gt_bbs, gt_cats = targets
-        preds_w_offsets =  self.stacked_anchor_boxes + preds
+        preds_w_offsets = self.stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
         inputs = torch.clamp(preds_w_offsets[gt_idxs], min=0, max=SIZE)
         targets = gt_bbs[gt_idxs].type(inputs.dtype)
