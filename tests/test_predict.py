@@ -1,12 +1,11 @@
-import math
 from unittest.mock import patch
 
 import pytest
 import torch
 
+from ssdmultibox.bboxer import Bboxer
 from ssdmultibox.config import cfg
-from ssdmultibox.datasets import FEATURE_MAPS, NUM_CLASSES, Bboxer
-from ssdmultibox.predict import CONF_THRESH, Predict
+from ssdmultibox.predict import Predict
 from tests.base import BaseTestCase, ModelAndDatasetBaseTestCase
 
 
@@ -14,12 +13,12 @@ class PredictTests(ModelAndDatasetBaseTestCase):
 
     def test_predict_all(self):
         single_preds = None
-        for c in range(NUM_CLASSES):
+        for c in range(cfg.NUM_CLASSES):
             single_preds = Predict.single_predict(c, self.preds)
             if single_preds:
                 break
 
-        ret_bbs , ret_scores, ret_cls_ids = Predict.predict_all(self.preds)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.predict_all(self.preds)
 
         single_bbs, single_scores, single_cls_ids = single_preds
         # more then 1 cls of obj detected
@@ -35,15 +34,11 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         cls_id = 6
         conf_thresh = 0.5
 
-        ret = Predict.single_predict(cls_id, self.preds, conf_thresh=conf_thresh)
+        Predict.single_predict(cls_id, self.preds, conf_thresh=conf_thresh)
 
         assert mock_single_nms.called
         assert mock_single_nms.call_args[0][0] == cls_id
-        self.assert_arr_equals(
-            [math.ceil(x) for x in mock_single_nms.call_args[0][1][-1]],
-            [0, 0, cfg.NORMALIZED_SIZE, cfg.NORMALIZED_SIZE],
-            msg=f"should be the normalized_size / feature_map[0] or {int(cfg.NORMALIZED_SIZE/FEATURE_MAPS[-1])}"
-        )
+        assert len(mock_single_nms.call_args[0][1][0]) == 4
         assert mock_single_nms.call_args[0][-1] == conf_thresh
 
     def test_single_predict__returns_correct_shapes(self):
@@ -54,7 +49,7 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         # same shapes from single_nms, need `if` because sometimes
         # this is none, but if it's detected something, I want check shapes
         if ret:
-            ret_bbs , ret_scores, ret_cls_ids = ret
+            ret_bbs, ret_scores, ret_cls_ids = ret
             assert len(ret_bbs.shape) == 2
             assert len(ret_scores.shape) == 1
             assert ret_bbs.shape[0] == ret_scores.shape[0]
@@ -123,9 +118,9 @@ class PredictUnitTests(BaseTestCase):
         item_bbs = torch.tensor([a, b])
         assert list(item_bbs.shape) == [2, 4]
         low_conf_thresh = .09
-        assert low_conf_thresh < CONF_THRESH
+        assert low_conf_thresh < cfg.NMS_CONF_THRESH
         cats_a = torch.cat((torch.tensor([low_conf_thresh]), torch.zeros(19)))
-        assert (cats_a > CONF_THRESH).sum().item() == 0
+        assert (cats_a > cfg.NMS_CONF_THRESH).sum().item() == 0
         cats_b = torch.cat((torch.tensor([.6]), torch.zeros(19)))
         item_cats = torch.stack((cats_a, cats_b))
         assert list(item_cats.shape) == [2, 20]

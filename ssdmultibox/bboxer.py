@@ -195,7 +195,7 @@ class Bboxer:
         gt_cats = cats[gt_idx]
         # the previous line will set the 0 ith class as the gt, so
         # set it to bg if it doesn't meet the IoU threshold
-        pos = gt_overlap > cfg.THRESH
+        pos = gt_overlap > cfg.IOU_THRESH
         try:
             neg_idx = np.nonzero(1-pos)[:,0]
         except IndexError:
@@ -396,7 +396,7 @@ class Bboxer:
             cls, bbs, cats, im, stacked_anchor_boxes, stacked_intersect, bbs_area):
         """
         Returns the gt_bbs and gt_cats based upon the gt_overlaps or if the
-        IoU is greater than the cfg.THRESH hyperparameter
+        IoU is greater than the cfg.IOU_THRESH hyperparameter
 
         Args:
             bbs (2d array): of raw bbs
@@ -416,7 +416,7 @@ class Bboxer:
         gt_cats = cats[gt_idx]
         # the previous line will set the 0 ith class as the gt, so
         # set it to bg if it doesn't meet the IoU threshold
-        pos = gt_overlap > cfg.THRESH
+        pos = gt_overlap > cfg.IOU_THRESH
         try:
             neg_idx = np.nonzero(1-pos)[:,0]
         except IndexError:

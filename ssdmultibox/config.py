@@ -30,7 +30,7 @@ class _Config:
     NORMALIZED_SIZE = 1
     NUM_CLASSES = 21
     # IoU threshold
-    THRESH = 0.5
+    IOU_THRESH = 0.5
     FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
     # SSD
     SSD_LOSS_ALPHA = 1

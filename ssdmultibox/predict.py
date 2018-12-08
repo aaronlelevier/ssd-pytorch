@@ -4,9 +4,8 @@ NMS final predictions module
 import torch
 
 from ssdmultibox.bboxer import TensorBboxer
+from ssdmultibox.config import cfg
 from ssdmultibox.datasets import NUM_CLASSES, device
-
-CONF_THRESH = 0.1
 
 
 class Predict:
@@ -15,7 +14,7 @@ class Predict:
     """
 
     @classmethod
-    def predict_all(cls, preds, index=0, conf_thresh=CONF_THRESH):
+    def predict_all(cls, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
         """
         Calculates NMS predictions for all object classes
 
@@ -44,7 +43,7 @@ class Predict:
         return bbs[sorted_ids], sorted_scores, cls_ids[sorted_ids]
 
     @classmethod
-    def single_predict(cls, cls_id, preds, index=0, conf_thresh=CONF_THRESH):
+    def single_predict(cls, cls_id, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
         """
         Full predictions for a single class
 
@@ -66,7 +65,7 @@ class Predict:
         return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
 
     @classmethod
-    def single_nms(cls, cls_id, item_bbs, item_cats, conf_thresh=CONF_THRESH):
+    def single_nms(cls, cls_id, item_bbs, item_cats, conf_thresh=cfg.NMS_CONF_THRESH):
         """
         Returns the NMS detections for a single image
 
