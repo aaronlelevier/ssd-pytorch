@@ -27,11 +27,11 @@ class _Config:
     "Global values for Model config"
 
     SIZE = 300
+    NORMALIZED_SIZE = 300
     NUM_CLASSES = 21
     # IoU threshold
     THRESH = 0.5
     FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
-    NORMALIZED_SIZE = 300
     # SSD
     SSD_LOSS_ALPHA = 1
     # NMS

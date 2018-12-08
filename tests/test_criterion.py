@@ -1,14 +1,26 @@
-import unittest
-
 import torch
 
 from ssdmultibox import criterion
 from ssdmultibox.config import cfg
-from ssdmultibox.datasets import NUM_CLASSES
 from tests.base import ModelAndDatasetBaseTestCase
 
 
 class CriterionTests(ModelAndDatasetBaseTestCase):
+
+    @staticmethod
+    def assert_is_loss_tensor(loss):
+        assert isinstance(loss, torch.Tensor)
+        assert loss.item() > 0
+
+    def test_ssd_loss(self):
+        ssd_criterion = criterion.SSDLoss()
+        targets = (self.gt_bbs, self.gt_cats)
+
+        ssd_loss, loc_loss, conf_loss = ssd_criterion(self.preds, targets)
+
+        self.assert_is_loss_tensor(ssd_loss)
+        self.assert_is_loss_tensor(loc_loss)
+        self.assert_is_loss_tensor(conf_loss)
 
     def test_bbs_loss(self):
         bbs_criterion = criterion.BbsL1Loss()
@@ -17,8 +29,7 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         ret = bbs_criterion(bbs_preds, targets)
 
-        assert isinstance(ret, torch.Tensor)
-        assert ret.item() > 0
+        self.assert_is_loss_tensor(ret)
 
     def test_bbs_loss__anchor_boxes_are_normalized_by_size(self):
         bbs_criterion = criterion.BbsL1Loss()
@@ -36,20 +47,10 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         ret = cats_criterion(cats_preds, self.gt_cats)
 
-        assert isinstance(ret, torch.Tensor)
-        assert ret.item() > 0
-
-    def test_ssd_loss(self):
-        ssd_criterion = criterion.SSDLoss()
-        targets = (self.gt_bbs, self.gt_cats)
-
-        ssd_loss, loc_loss, conf_loss = ssd_criterion(self.preds, targets)
-
-        assert isinstance(ssd_loss, torch.Tensor)
-        assert ssd_loss.item() > 0
+        self.assert_is_loss_tensor(ret)
 
     def test_one_hot_encoding(self):
-        y = torch.LongTensor(4,9).random_() % NUM_CLASSES
+        y = torch.LongTensor(4,9).random_() % cfg.NUM_CLASSES
         assert y.shape == (4, 9)
 
         ret = criterion.CatsBCELoss.one_hot_encoding(y)
@@ -57,7 +58,7 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
         assert ret.shape == (4, 21)
 
     def test_one_hot_encoding_unsqueezes_if_input_is_1d(self):
-        y = torch.LongTensor(4).random_() % NUM_CLASSES
+        y = torch.LongTensor(4).random_() % cfg.NUM_CLASSES
         assert y.shape == (4,)
 
         ret = criterion.CatsBCELoss.one_hot_encoding(y)
