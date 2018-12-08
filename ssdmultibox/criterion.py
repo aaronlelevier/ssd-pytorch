@@ -4,7 +4,42 @@ from torch import nn
 
 from ssdmultibox.bboxer import TensorBboxer
 from ssdmultibox.config import cfg
-from ssdmultibox.datasets import NUM_CLASSES, SIZE, device
+
+
+class SSDLoss(nn.Module):
+    def __init__(self, alpha=cfg.SSD_LOSS_ALPHA):
+        super().__init__()
+        self.alpha = alpha
+        self.bbs_loss = BbsL1Loss()
+        self.cats_loss = CatsBCELoss()
+
+    def forward(self, inputs, targets):
+        bbs_preds, cats_preds = inputs
+        gt_bbs, gt_cats = targets
+        conf = self.cats_loss(cats_preds, gt_cats)
+        loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats)) * self.alpha
+        n = (gt_cats != 20).sum().type(conf.dtype).to(cfg.DEVICE)
+        print('n: {} bbs_loss: {:.4f} cats_loss: {:.4f}'.format(
+            n.item(), loc.item(), conf.item()))
+        # TODO: added addit returns of loc, conf losses for debugging
+        return (1/n) * (conf+loc), loc, conf
+
+
+class BbsL1Loss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+
+    def forward(self, inputs, targets):
+        preds = inputs
+        gt_bbs, gt_cats = targets
+        preds_w_offsets = self.stacked_anchor_boxes + preds
+        gt_idxs = gt_cats != 20
+        # clamp to the SIZE because the incoming targets are already
+        # scaled to the SIZE
+        inputs = torch.clamp(preds_w_offsets[gt_idxs], min=0, max=cfg.SIZE)
+        targets = gt_bbs[gt_idxs].type(inputs.dtype)
+        return F.smooth_l1_loss(inputs, targets, reduction='sum')
 
 
 class CatsBCELoss(nn.Module):
@@ -34,41 +69,7 @@ class CatsBCELoss(nn.Module):
     def one_hot_encoding(y):
         if len(y.shape) == 1:
             y = y.unsqueeze(1)
-        y_onehot = torch.FloatTensor(y.shape[0], NUM_CLASSES).to(device)
+        y_onehot = torch.FloatTensor(y.shape[0], cfg.NUM_CLASSES).to(cfg.DEVICE)
         y_onehot.zero_()
         y = y.type(torch.long)
         return y_onehot.scatter_(1, y, 1)
-
-
-class BbsL1Loss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-
-    def forward(self, inputs, targets):
-        preds = inputs
-        gt_bbs, gt_cats = targets
-        preds_w_offsets = self.stacked_anchor_boxes + preds
-        gt_idxs = gt_cats != 20
-        inputs = torch.clamp(preds_w_offsets[gt_idxs], min=0, max=SIZE)
-        targets = gt_bbs[gt_idxs].type(inputs.dtype)
-        return F.smooth_l1_loss(inputs, targets, reduction='sum')
-
-
-class SSDLoss(nn.Module):
-    def __init__(self, alpha=cfg.SSD_LOSS_ALPHA):
-        super().__init__()
-        self.alpha = alpha
-        self.bbs_loss = BbsL1Loss()
-        self.cats_loss = CatsBCELoss()
-
-    def forward(self, inputs, targets):
-        bbs_preds, cats_preds = inputs
-        gt_bbs, gt_cats = targets
-        conf = self.cats_loss(cats_preds, gt_cats)
-        loc = self.bbs_loss(bbs_preds, (gt_bbs, gt_cats)) * self.alpha
-        n = (gt_cats != 20).sum().type(conf.dtype).to(device)
-        print('n: {} bbs_loss: {:.4f} cats_loss: {:.4f}'.format(
-            n.item(), loc.item(), conf.item()))
-        # TODO: added addit returns of loc, conf losses for debugging
-        return (1/n) * (conf+loc), loc, conf
