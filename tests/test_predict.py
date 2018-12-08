@@ -1,7 +1,6 @@
-import unittest
+import math
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import torch
 
@@ -41,9 +40,9 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         assert mock_single_nms.called
         assert mock_single_nms.call_args[0][0] == cls_id
         self.assert_arr_equals(
-            [int(x) for x in mock_single_nms.call_args[0][1][0]],
-            [0, 0, 7, 7],
-            msg=f"should be the normalized_size / feature_map[0] or {int(cfg.NORMALIZED_SIZE/FEATURE_MAPS[0])}"
+            [math.ceil(x) for x in mock_single_nms.call_args[0][1][-1]],
+            [0, 0, cfg.NORMALIZED_SIZE, cfg.NORMALIZED_SIZE],
+            msg=f"should be the normalized_size / feature_map[0] or {int(cfg.NORMALIZED_SIZE/FEATURE_MAPS[-1])}"
         )
         assert mock_single_nms.call_args[0][-1] == conf_thresh
 

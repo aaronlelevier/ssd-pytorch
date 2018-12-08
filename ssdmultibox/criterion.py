@@ -28,18 +28,14 @@ class SSDLoss(nn.Module):
 class BbsL1Loss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
 
     def forward(self, inputs, targets):
-        preds = inputs
+        bbs_preds = inputs
         gt_bbs, gt_cats = targets
-        preds_w_offsets = self.stacked_anchor_boxes + preds
         gt_idxs = gt_cats != 20
-        # clamp to the SIZE because the incoming targets are already
-        # scaled to the SIZE
-        inputs = torch.clamp(preds_w_offsets[gt_idxs], min=0, max=cfg.SIZE)
-        targets = gt_bbs[gt_idxs].type(inputs.dtype)
-        return F.smooth_l1_loss(inputs, targets, reduction='sum')
+        pos_inputs = bbs_preds[gt_idxs]
+        pos_targets = gt_bbs[gt_idxs].type(inputs.dtype)
+        return F.smooth_l1_loss(pos_inputs, pos_targets, reduction='sum')
 
 
 class CatsBCELoss(nn.Module):

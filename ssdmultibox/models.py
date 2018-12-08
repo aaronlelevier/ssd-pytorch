@@ -5,6 +5,7 @@ from torch import nn
 from torchvision.models import VGG
 from torchvision.models.vgg import model_urls
 
+from ssdmultibox.bboxer import TensorBboxer
 from ssdmultibox.datasets import NUM_CLASSES
 
 
@@ -119,22 +120,27 @@ class BlocksCustomHead(nn.Module):
 class OutCustomHead(nn.Module):
     """
     Returns the final stacked predictions as a tuple (bbs, cats)
+
+    bbs predictions are calculated using the anchor boxess + the predicted
+    offset and are [0,1] normalized
+
+    cats are the one hot encoded category prediction for all categories
+    including the background category
     """
     def __init__(self):
         super().__init__()
         self.aspect_ratio_count = 6
+        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
         self._setup_outconvs()
 
     def _setup_outconvs(self):
         block_names = ['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
         block_sizes = [512, 1024, 512, 256, 256, 256]
-        for i, name in enumerate(block_names):
-            for j, ar in enumerate(range(self.aspect_ratio_count)):
-                setattr(self, f'{block_names[i]}_{j}', OutConv(block_sizes[i]))
+        for i, block_name in enumerate(block_names):
+            for j in range(self.aspect_ratio_count):
+                setattr(self, f'{block_name}_{j}', OutConv(block_sizes[i]))
 
     def forward(self, blocks):
-        all_bbs = None
-        all_cats = None
         first_loop = True
         for k,v in blocks.items():
             for i in range(self.aspect_ratio_count):
@@ -149,7 +155,8 @@ class OutCustomHead(nn.Module):
                 else:
                     all_bbs = torch.cat((all_bbs, bbs), dim=1)
                     all_cats = torch.cat((all_cats, cats), dim=1)
-        return all_bbs, all_cats
+        all_bbs_w_offsets = torch.clamp(self.stacked_anchor_boxes + all_bbs, min=0, max=1)
+        return all_bbs_w_offsets, all_cats
 
 
 class OutConv(nn.Module):

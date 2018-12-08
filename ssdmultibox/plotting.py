@@ -1,10 +1,10 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from matplotlib import patches, patheffects
+from matplotlib import patches, patheffects, pyplot as plt
 
-from ssdmultibox.datasets import SIZE, Bboxer, TensorBboxer, device
+from ssdmultibox.bboxer import Bboxer, TensorBboxer
+from ssdmultibox.datasets import SIZE
 from ssdmultibox.predict import Predict
 from ssdmultibox.utils import open_image
 
@@ -96,7 +96,7 @@ def plot_single_predictions(dataset, idx, targets):
         dataset (torch.utils.data.Dataset)
         idx (int): index of dataset item to show
         targets (2d array):
-            fastai formatted bbs to plot
+            fastai formatted bbs to plot, [0,1] normalized
     """
     image_id, im, gt_bbs, gt_cats = dataset[idx]
     ann = dataset.get_annotations()[image_id]
@@ -107,10 +107,10 @@ def plot_single_predictions(dataset, idx, targets):
     for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
-    for i, bb in enumerate(targets):
-        gt_overlap_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
-        draw_rect(ax, gt_overlap_bb, edgecolor='red')
-        draw_text(ax, gt_overlap_bb[:2], i, sz=8)
+    for i, bb in enumerate(targets*SIZE):
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+        draw_rect(ax, pascal_bb, edgecolor='red')
+        draw_text(ax, pascal_bb[:2], i, sz=8)
 
 
 def get_targets(gt_cats, idx, bbs_preds=None):
@@ -129,7 +129,7 @@ def get_targets(gt_cats, idx, bbs_preds=None):
     stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
     bbs = stacked_anchor_boxes[not_bg_mask]
     if isinstance(bbs_preds, torch.Tensor):
-        bbs += bbs_preds[idx][not_bg_mask]
+        bbs = bbs_preds[idx][not_bg_mask]
     return bbs
 
 
@@ -157,4 +157,4 @@ def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     boxes, *_ = Predict.predict_all(preds, index=idx)
-    plot_single_predictions(dataset, dataset_idx, boxes[:limit])
+    plot_single_predictions(dataset, dataset_idx, targets=boxes[:limit])

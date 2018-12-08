@@ -62,9 +62,7 @@ class Predict:
         bbs_preds, cats_preds = preds
         # class 20, background is ignored
         cats_preds = cats_preds[:,:,:-1]
-        stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-        bbs_preds_w_offsets = stacked_anchor_boxes + bbs_preds
-        item_bbs, item_cats = bbs_preds_w_offsets[index], cats_preds[index]
+        item_bbs, item_cats = bbs_preds[index], cats_preds[index]
         return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
 
     @classmethod
