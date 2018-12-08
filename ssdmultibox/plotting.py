@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 import torch
-from matplotlib import patches, patheffects, pyplot as plt
+from matplotlib import patches, patheffects
+from matplotlib import pyplot as plt
 
 from ssdmultibox.bboxer import Bboxer, TensorBboxer
-from ssdmultibox.datasets import SIZE
+from ssdmultibox.config import cfg
 from ssdmultibox.predict import Predict
 from ssdmultibox.utils import open_image
 
@@ -72,19 +73,19 @@ def plot_single_nms_detections(dataset, idx, detections, limit=5):
     ann = dataset.get_annotations()[image_id]
     # image
     im = open_image(ann['image_path'])
-    resized_im = cv2.resize(im, (SIZE, SIZE))
+    resized_im = cv2.resize(im, (cfg.SIZE, cfg.SIZE))
     ax = show_img(resized_im)
     # detections
     if detections:
         detected_bbs, scores, ids = detections
         for i, (bb, score, cls_id) in enumerate(zip(detected_bbs, scores, ids)):
-            pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*SIZE)
+            pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*cfg.SIZE)
             draw_rect(ax, pascal_bb)
             draw_text(ax, pascal_bb[:2], f'{score.item()}'[:6], sz=9)
             if i == limit-1:
                 break
     # show gt bbs
-    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
+    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
 
@@ -101,13 +102,13 @@ def plot_single_predictions(dataset, idx, targets):
     image_id, im, gt_bbs, gt_cats = dataset[idx]
     ann = dataset.get_annotations()[image_id]
     im = open_image(ann['image_path'])
-    resized_im = cv2.resize(im, (SIZE, SIZE))
+    resized_im = cv2.resize(im, (cfg.SIZE, cfg.SIZE))
     ax = show_img(resized_im)
 
-    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * SIZE):
+    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
-    for i, bb in enumerate(targets*SIZE):
+    for i, bb in enumerate(targets*cfg.SIZE):
         pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
         draw_rect(ax, pascal_bb, edgecolor='red')
         draw_text(ax, pascal_bb[:2], i, sz=8)
