@@ -6,7 +6,7 @@ from torchvision.models import VGG
 from torchvision.models.vgg import model_urls
 
 from ssdmultibox.bboxer import TensorBboxer
-from ssdmultibox.datasets import NUM_CLASSES
+from ssdmultibox.config import cfg
 
 
 class SSDModel(nn.Module):
@@ -164,11 +164,11 @@ class OutConv(nn.Module):
         super().__init__()
         self.bbs_size = 4
         self.oconv1 = nn.Conv2d(nin, self.bbs_size, 3, padding=1)
-        self.oconv2 = nn.Conv2d(nin, NUM_CLASSES, 3, padding=1)
+        self.oconv2 = nn.Conv2d(nin, cfg.NUM_CLASSES, 3, padding=1)
 
     def forward(self, x):
         return [self.flatten_conv(self.oconv1(x), self.bbs_size),
-                self.flatten_conv(self.oconv2(x), NUM_CLASSES)]
+                self.flatten_conv(self.oconv2(x), cfg.NUM_CLASSES)]
 
     def flatten_conv(self, x, size):
         bs,nf,gx,gy = x.size()

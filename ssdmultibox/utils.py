@@ -8,6 +8,14 @@ import torch
 
 
 def open_image(image_path):
+    """
+    Returns an image as a 3d array of format HWC
+
+    Args:
+        image_path (str): filepath for image
+    Returns:
+        nd.ndarray
+    """
     flags = cv2.IMREAD_UNCHANGED+cv2.IMREAD_ANYDEPTH+cv2.IMREAD_ANYCOLOR
     return cv2.imread(image_path, flags)/255
 
@@ -28,7 +36,9 @@ def save_model(model, dirname='model_checkpoints/'):
 
 
 def get_cpu_count():
-    "Returns the number of CPUs"
+    """
+    Returns the number of CPUs
+    """
     system = platform.system()
     if system == 'Darwin':
         output = subprocess.check_output(['sysctl', '-n', 'hw.ncpu'])
