@@ -67,7 +67,8 @@ class PascalDataset(Dataset):
         im = open_image(image_paths[image_id])
         chw_im = self.scaled_im_by_size_and_chw_format(im)
 
-        gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats_for_all(bbs, cats, im)
+        gt_bbs, gt_cats = self.bboxer.get_gt_bbs_and_cats_for_all(
+            bbs, cats, im)
 
         return image_id, chw_im, gt_bbs, gt_cats
 
@@ -170,7 +171,7 @@ class PascalDataset(Dataset):
         Args:
             im (2d list): HWC format, with it's raw size
         """
-        resized_image = cv2.resize(im, (SIZE, SIZE)) # HW
+        resized_image = cv2.resize(im, (SIZE, SIZE)) # HWC
         return np.transpose(resized_image, (2, 0, 1)) # CHW
 
 

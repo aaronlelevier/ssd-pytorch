@@ -3,7 +3,6 @@ NMS final predictions module
 """
 import torch
 
-from ssdmultibox.bboxer import TensorBboxer
 from ssdmultibox.config import cfg
 from ssdmultibox.datasets import NUM_CLASSES, device
 
