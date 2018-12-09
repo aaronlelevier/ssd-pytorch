@@ -3,18 +3,24 @@ from pathlib import Path
 
 import torch
 
-HOME_DIR = os.path.expanduser('~')
 
-if HOME_DIR.startswith('/Users/alelevier'):
-    DATA_DIR = Path(f'{HOME_DIR}/data/')
-elif HOME_DIR.startswith('/Users/aaron'):
-    DATA_DIR = Path(f'{HOME_DIR}/data/VOC2007/trainval/VOCdevkit/VOC2007/')
-elif HOME_DIR == '/home/paperspace':
-    DATA_DIR = Path('/home/paperspace/data/pascal')
-else: # kaggle
-    DATA_DIR = Path('../input/pascal/pascal')
+def get_data_dir():
+    home_dir = os.path.expanduser('~')
 
-IMAGE_PATH = Path(DATA_DIR/'JPEGImages/')
+    if home_dir.startswith('/Users/alelevier'):
+        data_dir = Path(f'{home_dir}/data/')
+    elif home_dir.startswith('/Users/aaron'):
+        data_dir = Path(f'{home_dir}/data/VOC2007/trainval/VOCdevkit/VOC2007/')
+    elif home_dir == '/home/paperspace':
+        data_dir = Path('/home/paperspace/data/pascal')
+    else: # kaggle
+        data_dir = Path('../input/pascal/pascal')
+
+    return data_dir
+
+def get_image_path():
+    data_dir = get_data_dir()
+    return Path(data_dir/'JPEGImages/')
 
 
 class InvalidConfigError(Exception):
@@ -25,6 +31,9 @@ class InvalidConfigError(Exception):
 
 class _Config:
     "Global values for Model config"
+
+    DATA_DIR = get_data_dir()
+    IMAGE_PATH = get_image_path()
 
     SIZE = 300
 
