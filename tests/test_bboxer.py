@@ -693,12 +693,12 @@ class TensorBboxerTests(BaseTestCase):
     def test_get_stacked_anchor_boxes(self):
         ret = TensorBboxer.get_stacked_anchor_boxes()
 
-        block4_feature_cell_size = 0.02631578947368421
-        assert cfg.NORMALIZED_SIZE/FEATURE_MAPS[0] == block4_feature_cell_size, \
-            "the first anchor box should be the size of a the first feature cell"
+        block4_feature_cell_size = 1. / FEATURE_MAPS[0]
         self.assert_arr_equals(
-            ret[0], [0, 0, block4_feature_cell_size, block4_feature_cell_size])
+            ret[0],
+            [0, 0, block4_feature_cell_size, block4_feature_cell_size]
+        )
         self.assert_arr_equals(
             ret[-1],
-            [0, 0, cfg.NORMALIZED_SIZE, cfg.NORMALIZED_SIZE]
+            [0, 0, 1., 1.]
         )

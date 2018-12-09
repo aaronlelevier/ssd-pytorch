@@ -155,7 +155,8 @@ class OutCustomHead(nn.Module):
                 else:
                     all_bbs = torch.cat((all_bbs, bbs), dim=1)
                     all_cats = torch.cat((all_cats, cats), dim=1)
-        all_bbs_w_offsets = torch.clamp(self.stacked_anchor_boxes + all_bbs, min=0, max=1)
+        all_bbs_w_offsets = torch.clamp(
+            self.stacked_anchor_boxes + all_bbs, min=0, max=1) * cfg.NORMALIZED_SIZE
         return all_bbs_w_offsets, all_cats
 
 
