@@ -108,7 +108,7 @@ def plot_single_predictions(dataset, idx, targets):
     for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
-    for i, bb in enumerate(targets*cfg.SIZE):
+    for i, bb in enumerate(targets):
         pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
         draw_rect(ax, pascal_bb, edgecolor='red')
         draw_text(ax, pascal_bb[:2], i, sz=8)
@@ -140,7 +140,7 @@ def plot_anchor_bbs(dataset, image_ids, idx, gt_cats):
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx))
+        targets=get_targets(gt_cats, idx)*cfg.NORMALIZED_SIZE)
 
 
 def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats):

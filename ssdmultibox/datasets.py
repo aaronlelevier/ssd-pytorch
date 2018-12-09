@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ssdmultibox import config
+from ssdmultibox.config import cfg
 from ssdmultibox.bboxer import Bboxer
 from ssdmultibox.utils import open_image
 
@@ -213,5 +214,6 @@ class TrainPascalFlatDataset(TrainPascalDataset):
         chw_im = self.scaled_im_by_size_and_chw_format(im)
 
         gt_bbs, gt_cats = Bboxer.get_stacked_gt(bbs, cats, im)
+        gt_bbs *= cfg.NORMALIZED_SIZE
 
         return image_id, chw_im, gt_bbs, gt_cats

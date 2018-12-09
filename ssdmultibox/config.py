@@ -27,7 +27,11 @@ class _Config:
     "Global values for Model config"
 
     SIZE = 300
-    NORMALIZED_SIZE = 1
+
+    # size that we are normalizing the model to predict and gt_bbs as
+    NORMALIZED_SIZE = 300
+
+    # number of object classes
     NUM_CLASSES = 21
     # IoU threshold
     IOU_THRESH = 0.5
