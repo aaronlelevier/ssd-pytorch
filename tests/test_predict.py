@@ -11,14 +11,14 @@ from tests.base import BaseTestCase, ModelAndDatasetBaseTestCase
 
 class PredictTests(ModelAndDatasetBaseTestCase):
 
-    def test_predict_all(self):
+    def test_all(self):
         single_preds = None
         for c in range(cfg.NUM_CLASSES):
-            single_preds = Predict.single_predict(c, self.preds)
+            single_preds = Predict.single(c, self.preds)
             if single_preds:
                 break
 
-        ret_bbs, ret_scores, ret_cls_ids = Predict.predict_all(self.preds)
+        ret_bbs, ret_scores, ret_cls_ids = Predict.all(self.preds)
 
         single_bbs, single_scores, single_cls_ids = single_preds
         # more then 1 cls of obj detected
@@ -29,22 +29,22 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         assert ret_bbs.shape[0] == ret_cls_ids.shape[0]
 
     @patch("ssdmultibox.predict.Predict.single_nms")
-    def test_single_predict__calls_single_nms(
+    def test_single__calls_single_nms(
             self, mock_single_nms):
         cls_id = 6
         conf_thresh = 0.5
 
-        Predict.single_predict(cls_id, self.preds, conf_thresh=conf_thresh)
+        Predict.single(cls_id, self.preds, conf_thresh=conf_thresh)
 
         assert mock_single_nms.called
         assert mock_single_nms.call_args[0][0] == cls_id
         assert len(mock_single_nms.call_args[0][1][0]) == 4
         assert mock_single_nms.call_args[0][-1] == conf_thresh
 
-    def test_single_predict__returns_correct_shapes(self):
+    def test_single__returns_correct_shapes(self):
         cls_id = 12
 
-        ret = Predict.single_predict(cls_id, self.preds)
+        ret = Predict.single(cls_id, self.preds)
 
         # same shapes from single_nms, need `if` because sometimes
         # this is none, but if it's detected something, I want check shapes
@@ -55,23 +55,23 @@ class PredictTests(ModelAndDatasetBaseTestCase):
             assert ret_bbs.shape[0] == ret_scores.shape[0]
             assert ret_cls_ids.shape[0] == ret_scores.shape[0]
 
-    def test_single_predict__explicit_choose_item_in_batch(self):
+    def test_single__explicit_choose_item_in_batch(self):
         cls_id = 12
 
-        ret = Predict.single_predict(cls_id, self.preds)
-        ret2 = Predict.single_predict(cls_id, self.preds, index=1)
+        ret = Predict.single(cls_id, self.preds)
+        ret2 = Predict.single(cls_id, self.preds, index=1)
 
         if ret and ret2:
             assert ret[0].shape != ret2[0].shape, \
             "shouldn't be the same because different training example items"
 
-    def test_single_predict__bad_index_raises_error(self):
+    def test_single__bad_index_raises_error(self):
         cls_id = 12
         index = 5
         assert self.preds[0][0][0].shape[0] < index
 
         with pytest.raises(IndexError):
-            Predict.single_predict(cls_id, self.preds, index=index)
+            Predict.single(cls_id, self.preds, index=index)
 
     def test_single_nms(self):
         cls_id = 0

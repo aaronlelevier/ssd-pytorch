@@ -13,7 +13,7 @@ class Predict:
     """
 
     @classmethod
-    def predict_all(cls, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
+    def all(cls, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
         """
         Calculates NMS predictions for all object classes
 
@@ -30,7 +30,7 @@ class Predict:
 
         # don't look for bg class
         for c in range(NUM_CLASSES-1):
-            single_preds = cls.single_predict(c, preds, index, conf_thresh)
+            single_preds = cls.single(c, preds, index, conf_thresh)
             if single_preds:
                 single_bbs, single_scores, single_cls_ids = single_preds
                 bbs = torch.cat((bbs, single_bbs))
@@ -42,7 +42,7 @@ class Predict:
         return bbs[sorted_ids], sorted_scores, cls_ids[sorted_ids]
 
     @classmethod
-    def single_predict(cls, cls_id, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
+    def single(cls, cls_id, preds, index=0, conf_thresh=cfg.NMS_CONF_THRESH):
         """
         Full predictions for a single class
 
