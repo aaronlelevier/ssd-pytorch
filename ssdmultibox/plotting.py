@@ -66,7 +66,7 @@ def plot_single_nms_detections(dataset, idx, detections, limit=5):
     Args:
         dataset (torch.utils.data.Dataset)
         idx (int): index of dataset item to show
-        detections (3 item tuple): return value from `Predict.predict_all`
+        detections (3 item tuple): return value from `Predict.all`
         limit (int:optional): use to limit the number of detections shown
     """
     image_id, im, gt_bbs, gt_cats = dataset[idx]
@@ -157,5 +157,5 @@ def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
     "Plots NMS predictions"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
-    boxes, *_ = Predict.predict_all(preds, index=idx)
+    boxes, *_ = Predict.all(preds, index=idx)
     plot_single_predictions(dataset, dataset_idx, targets=boxes[:limit])
