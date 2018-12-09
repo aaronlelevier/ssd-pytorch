@@ -3,9 +3,9 @@ import unittest
 
 import pytest
 
-from ssdmultibox.criterion import SSDLoss
 from ssdmultibox import config
 from ssdmultibox.config import cfg
+from ssdmultibox.criterion import SSDLoss
 
 
 class ConfigTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class ConfigTests(unittest.TestCase):
     def test_data_dir(self):
         home_dir = os.path.expanduser('~')
 
-        ret = config.DATA_DIR
+        ret = cfg.DATA_DIR
 
         if home_dir.startswith('/Users/alelevier'):
             assert str(ret) == f'{home_dir}/data'

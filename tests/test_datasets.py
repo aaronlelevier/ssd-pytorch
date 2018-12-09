@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-from ssdmultibox import config
+from ssdmultibox.config import cfg
 from ssdmultibox.datasets import (SIZE, PascalDataset, TrainPascalDataset,
                                   TrainPascalFlatDataset)
 from ssdmultibox.utils import open_image
@@ -176,7 +176,7 @@ class PascalDatasetTests(BaseTestCase):
 
         assert isinstance(ret, dict)
         assert self.dataset.preview(ret) == \
-            (12,  f'{config.DATA_DIR}/JPEGImages/000012.jpg')
+            (12,  f'{cfg.DATA_DIR}/JPEGImages/000012.jpg')
 
     def test_get_filenames(self):
         ret = self.dataset.get_filenames()

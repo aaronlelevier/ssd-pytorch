@@ -5,9 +5,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from ssdmultibox import config
-from ssdmultibox.config import cfg
 from ssdmultibox.bboxer import Bboxer
+from ssdmultibox.config import cfg
 from ssdmultibox.utils import open_image
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -46,7 +45,7 @@ IMAGE_PATH = 'image_path'
 class PascalDataset(Dataset):
 
     def __init__(self):
-        self.filepath = config.DATA_DIR
+        self.filepath = cfg.DATA_DIR
         self.bboxer = Bboxer
 
     @property
@@ -116,7 +115,7 @@ class PascalDataset(Dataset):
 
     def images(self):
         # returns a dict of id,image_fullpath
-        return {k: f'{config.IMAGE_PATH}/{v}' for k,v in self.get_filenames().items()}
+        return {k: f'{cfg.IMAGE_PATH}/{v}' for k,v in self.get_filenames().items()}
 
     def get_filenames(self):
         return {o[ID]:o[FILE_NAME] for o in self.raw_images()}
