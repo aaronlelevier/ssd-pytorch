@@ -35,6 +35,7 @@ class _Config:
     DATA_DIR = get_data_dir()
     IMAGE_PATH = get_image_path()
 
+    # image size
     SIZE = 300
 
     # size that we are normalizing the model to predict and gt_bbs as
@@ -42,9 +43,19 @@ class _Config:
 
     # number of object classes
     NUM_CLASSES = 21
+
     # IoU threshold
     IOU_THRESH = 0.5
+
+    # number of feature map cells per coinciding block, i.e. block4, block5, etc...
     FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
+
+    # number of aspect ratios per feature map cell
+    ASPECT_RATIOS = 6
+
+    # max allowed prediction offset from anchor box anchor points
+    ALLOWED_OFFSET = .25
+
     # SSD
     SSD_LOSS_ALPHA = 1
     # NMS
