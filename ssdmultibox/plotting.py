@@ -108,21 +108,14 @@ def plot_single_predictions(dataset, idx, targets):
     for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
-    for i, bb in enumerate(targets):
-        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+    cat_names = dataset.categories()
+    for i, (bb,cat) in enumerate(zip(*targets)):
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)*cfg.SIZE
         draw_rect(ax, pascal_bb, edgecolor='red')
-        draw_text(ax, pascal_bb[:2], i, sz=8)
+        draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
 
 
 def get_targets(gt_cats, idx, bbs_preds=None):
-    """
-    Returns a 2d array of the target fastai formatted bbs
-    based upon the gt_cats that aren't background
-
-    Args:
-        gt_cats (3d array): of batch gt_cats
-        idx (int): gt_cats item from the batch to retrieve
-    """
     gt_cat = torch.tensor(gt_cats[idx])
     not_bg_mask = gt_cat != 20
     not_bg_mask = (not_bg_mask == 1).nonzero()
@@ -131,7 +124,8 @@ def get_targets(gt_cats, idx, bbs_preds=None):
     bbs = stacked_anchor_boxes[not_bg_mask]
     if isinstance(bbs_preds, torch.Tensor):
         bbs = bbs_preds[idx][not_bg_mask]
-    return bbs
+    cats = gt_cats[idx][not_bg_mask]
+    return bbs, cats
 
 
 def plot_anchor_bbs(dataset, image_ids, idx, gt_cats):
@@ -140,7 +134,7 @@ def plot_anchor_bbs(dataset, image_ids, idx, gt_cats):
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx)*cfg.NORMALIZED_SIZE)
+        targets=get_targets(gt_cats, idx))
 
 
 def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
