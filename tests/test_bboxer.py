@@ -702,3 +702,17 @@ class TensorBboxerTests(BaseTestCase):
             ret[-1],
             [0, 0, 1., 1.]
         )
+
+    def test_get_allowed_offset(self):
+        assert TensorBboxer.get_allowed_offset(1) == 0.25
+        assert TensorBboxer.get_allowed_offset(2) == 0.125
+        assert TensorBboxer.get_allowed_offset(3) == 0.08333333333333333
+        assert TensorBboxer.get_allowed_offset(4) == 0.0625
+        assert TensorBboxer.get_allowed_offset(38) == (1/38)*.25
+
+    def test_get_feature_map_max_offsets(self):
+        ret = TensorBboxer.get_feature_map_max_offsets()
+
+        self.assert_float_equals(ret[0], 0.006578947368421052)
+        self.assert_float_equals(ret[-7], 0.0833333358168602)
+        self.assert_float_equals(ret[-1], 0.25)

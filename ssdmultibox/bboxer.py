@@ -461,3 +461,26 @@ class TensorBboxer(Bboxer):
         feature_maps = feature_maps or cfg.FEATURE_MAPS
         bbs = super().get_stacked_anchor_boxes(feature_maps, aspect_ratios)
         return torch.tensor(bbs, dtype=torch.float32).to(cfg.DEVICE)
+
+    @staticmethod
+    def get_allowed_offset(cell_size):
+        """
+        Returns the max offset allowed per the cell_size
+
+        Args:
+            cell_size (int): should be a cfg.FEATURE_MAPS int cell size
+        Returns:
+            float
+        """
+        return (1/cell_size) * cfg.ALLOWED_OFFSET
+
+    @classmethod
+    def get_feature_map_max_offsets(cls):
+        """
+        Returns a 2d tensor fo max offsets allowed per the feature
+        map cell sizes. Shape is (feature_maps_count aka 11640, 1)
+        """
+        return torch.cat(
+            [torch.FloatTensor(fm*fm*cfg.ASPECT_RATIOS,1).fill_(cls.get_allowed_offset(fm))
+             for fm in cfg.FEATURE_MAPS],
+        dim=0).to(cfg.DEVICE)
