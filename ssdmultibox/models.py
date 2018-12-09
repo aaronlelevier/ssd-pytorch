@@ -130,7 +130,8 @@ class OutCustomHead(nn.Module):
     def __init__(self):
         super().__init__()
         self.aspect_ratio_count = 6
-        self.stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+        self.anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+        self.fm_max_offsets = TensorBboxer.get_feature_map_max_offsets()
         self._setup_outconvs()
 
     def _setup_outconvs(self):
@@ -155,8 +156,11 @@ class OutCustomHead(nn.Module):
                 else:
                     all_bbs = torch.cat((all_bbs, bbs), dim=1)
                     all_cats = torch.cat((all_cats, cats), dim=1)
+
         all_bbs_w_offsets = torch.clamp(
-            self.stacked_anchor_boxes + all_bbs, min=0, max=1) * cfg.NORMALIZED_SIZE
+            self.anchor_boxes + (torch.tanh(all_bbs).to(cfg.DEVICE) * self.fm_max_offsets),
+        min=0, max=1) * cfg.NORMALIZED_SIZE
+
         return all_bbs_w_offsets, all_cats
 
 
