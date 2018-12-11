@@ -391,6 +391,17 @@ class BboxerTests(BaseTestCase):
             [0.185416666666667, 0.211538461538462, 0.654166666666667, 0.711538461538462]]
         )
 
+    def test_scaled_pascal_bbs__for_scale(self):
+        im = open_image(self.dataset.images()[TEST_IMAGE_ID])
+
+        ret = Bboxer.scaled_pascal_bbs(TEST_PASCAL_BBS, im, scale=300)
+
+        self.assert_arr_equals(
+            ret,
+            [[115.00000000000001,  50.27472527472527,  59.375           ,113.73626373626374],
+            [ 55.625           ,  63.46153846153846, 196.25            , 213.46153846153848]]
+        )
+
     def test_fastai_bb_to_pascal_bb(self):
         fastai_bb = [ 86.48648648648648,  93.              , 242.24324324324323, 209.6             ]
 
