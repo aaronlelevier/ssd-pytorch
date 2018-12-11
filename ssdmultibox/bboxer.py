@@ -238,12 +238,12 @@ class Bboxer:
         return np.array([bbs[:,1], bbs[:,0], bbs[:,3]-bbs[:,1]+1, bbs[:,2]-bbs[:,0]+1]).T
 
     @staticmethod
-    def scaled_pascal_bbs(bbs, im):
+    def scaled_pascal_bbs(bbs, im, scale=1):
         "Returns scaled pascal bbs scaled [0,1]"
         pascal_bbs = np.array(bbs)
         im_w = im.shape[1]
         im_h = im.shape[0]
-        return np.divide(pascal_bbs, [im_w, im_h, im_w, im_h])
+        return np.divide(pascal_bbs, [im_w, im_h, im_w, im_h]) * scale
 
     @staticmethod
     def fastai_bb_to_pascal_bb(bb):

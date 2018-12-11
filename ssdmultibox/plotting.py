@@ -31,62 +31,9 @@ def draw_outline(o, lw):
 
 
 def draw_text(ax, xy, txt, sz=14):
-    text = ax.text(*xy, txt,
-        verticalalignment='top', color='white', fontsize=sz, weight='bold')
+    text = ax.text(
+        *xy, txt, verticalalignment='top', color='white', fontsize=sz, weight='bold')
     draw_outline(text, 1)
-
-
-def plot_single(dataset, idx, ax=None):
-    "uses the Dataset idx to select a training sample and plot it"
-    image_id, im, gt_bbs, gt_cats = dataset[idx]
-    gt_idx = np.where(gt_cats == 1)[0]
-    gt_idx_bbs = gt_bbs[gt_idx]
-    gt_idx_cats = np.argmax(gt_cats, axis=1)[gt_idx]
-
-    resized_image = np.transpose(im, (1,2,0))
-    ax = show_img(resized_image, ax=ax)
-    for bbox in dataset.bboxer.anchor_corners(grid_size=4):
-        draw_rect(ax, bbox*224, edgecolor='red')
-    for bbox, cat in zip(dataset.bboxer.pascal_bbs(gt_idx_bbs), gt_idx_cats):
-        draw_rect(ax, bbox)
-        draw_text(ax, bbox[:2], dataset.categories()[cat])
-
-
-def plot_multiple(dataset):
-    fig, axes = plt.subplots(3, 4, figsize=(12, 8))
-    for i,ax in enumerate(axes.flat):
-        plot_single(dataset, i, ax)
-    plt.tight_layout()
-
-
-def plot_single_nms_detections(dataset, idx, detections, limit=5):
-    """
-    Shows NMS detections of an image
-
-    Args:
-        dataset (torch.utils.data.Dataset)
-        idx (int): index of dataset item to show
-        detections (3 item tuple): return value from `Predict.all`
-        limit (int:optional): use to limit the number of detections shown
-    """
-    image_id, im, gt_bbs, gt_cats = dataset[idx]
-    ann = dataset.get_annotations()[image_id]
-    # image
-    im = open_image(ann['image_path'])
-    resized_im = cv2.resize(im, (cfg.SIZE, cfg.SIZE))
-    ax = show_img(resized_im)
-    # detections
-    if detections:
-        detected_bbs, scores, ids = detections
-        for i, (bb, score, cls_id) in enumerate(zip(detected_bbs, scores, ids)):
-            pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb*cfg.SIZE)
-            draw_rect(ax, pascal_bb)
-            draw_text(ax, pascal_bb[:2], f'{score.item()}'[:6], sz=9)
-            if i == limit-1:
-                break
-    # show gt bbs
-    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
-        draw_rect(ax, gt_bb, edgecolor='yellow')
 
 
 def plot_single_predictions(dataset, idx, targets):
@@ -99,17 +46,17 @@ def plot_single_predictions(dataset, idx, targets):
         targets (2d array):
             fastai formatted bbs to plot, [0,1] normalized
     """
-    image_id, im, gt_bbs, gt_cats = dataset[idx]
+    image_id, im, *_ = dataset[idx]
     ann = dataset.get_annotations()[image_id]
     im = open_image(ann['image_path'])
     resized_im = cv2.resize(im, (cfg.SIZE, cfg.SIZE))
     ax = show_img(resized_im)
 
-    for gt_bb in (Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im) * cfg.SIZE):
+    for gt_bb in Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im, scale=cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
 
     cat_names = dataset.categories()
-    for i, (bb,cat) in enumerate(zip(*targets)):
+    for bb, cat in zip(*targets):
         pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
         draw_rect(ax, pascal_bb, edgecolor='red')
         draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
