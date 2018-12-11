@@ -110,21 +110,26 @@ def plot_single_predictions(dataset, idx, targets):
 
     cat_names = dataset.categories()
     for i, (bb,cat) in enumerate(zip(*targets)):
-        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)*cfg.SIZE
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
         draw_rect(ax, pascal_bb, edgecolor='red')
         draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
 
 
 def get_targets(gt_cats, idx, bbs_preds=None):
+    """
+    Returns target bbs,cats of either the anchor boxes or the bbs_preds
+    using the anchor box offsets
+    """
     gt_cat = torch.tensor(gt_cats[idx])
     not_bg_mask = gt_cat != 20
     not_bg_mask = (not_bg_mask == 1).nonzero()
     not_bg_mask = not_bg_mask.squeeze(1)
-    stacked_anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-    bbs = stacked_anchor_boxes[not_bg_mask]
+    cats = gt_cats[idx][not_bg_mask]
     if isinstance(bbs_preds, torch.Tensor):
         bbs = bbs_preds[idx][not_bg_mask]
-    cats = gt_cats[idx][not_bg_mask]
+    else:
+        anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+        bbs = anchor_boxes[not_bg_mask] * cfg.SIZE
     return bbs, cats
 
 
@@ -146,10 +151,19 @@ def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
         targets=get_targets(gt_cats, idx, bbs_preds))
 
 
-# TODO: might be broken and plotting the wrong NMS?
 def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
     "Plots NMS predictions"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
-    boxes, *_ = Predict.all(preds, index=idx)
-    plot_single_predictions(dataset, dataset_idx, targets=boxes[:limit])
+    boxes, scores, cls_ids = Predict.all(preds, index=idx)
+    plot_single_predictions(
+        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]))
+
+
+def plot_nms_single_preds(dataset, image_ids, idx, cls_id, preds, limit=5):
+    "Plots NMS predictions for a single object class"
+    image_id = image_ids[idx].item()
+    dataset_idx = dataset.get_image_id_idx_map()[image_id]
+    boxes, scores, cls_ids = Predict.single(cls_id, preds, index=idx)
+    plot_single_predictions(
+        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]))
