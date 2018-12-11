@@ -36,7 +36,7 @@ def draw_text(ax, xy, txt, sz=14):
     draw_outline(text, 1)
 
 
-def plot_single_predictions(dataset, idx, targets):
+def plot_single_predictions(dataset, idx, targets, ax=None):
     """
     Plots the gt bb(s) and predicted bbs
 
@@ -50,7 +50,7 @@ def plot_single_predictions(dataset, idx, targets):
     ann = dataset.get_annotations()[image_id]
     im = open_image(ann['image_path'])
     resized_im = cv2.resize(im, (cfg.SIZE, cfg.SIZE))
-    ax = show_img(resized_im)
+    ax = show_img(resized_im, ax=ax)
 
     for gt_bb in Bboxer.scaled_pascal_bbs(np.array(ann['bbs']), im, scale=cfg.SIZE):
         draw_rect(ax, gt_bb, edgecolor='yellow')
@@ -80,37 +80,54 @@ def get_targets(gt_cats, idx, bbs_preds=None):
     return bbs, cats
 
 
-def plot_anchor_bbs(dataset, image_ids, idx, gt_cats):
+def plot_anchor_bbs(dataset, image_ids, idx, gt_cats, ax=None):
     "Plots the ground truth anchor boxes"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx))
+        targets=get_targets(gt_cats, idx), ax=ax)
 
 
-def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats):
+def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats, ax=None):
     "Plots the predictions based on the ground truth anchor box offsets"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx, bbs_preds))
+        targets=get_targets(gt_cats, idx, bbs_preds), ax=ax)
 
 
-def plot_nms_preds(dataset, image_ids, idx, preds, limit=5):
+def plot_nms_preds(dataset, image_ids, idx, preds, limit=5, ax=None):
     "Plots NMS predictions"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     boxes, scores, cls_ids = Predict.all(preds, index=idx)
     plot_single_predictions(
-        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]))
+        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]), ax=ax)
 
 
-def plot_nms_single_preds(dataset, image_ids, idx, cls_id, preds, limit=5):
+def plot_nms_single_preds(dataset, image_ids, idx, cls_id, preds, limit=5, ax=None):
     "Plots NMS predictions for a single object class"
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     boxes, scores, cls_ids = Predict.single(cls_id, preds, index=idx)
     plot_single_predictions(
-        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]))
+        dataset, dataset_idx, targets=(boxes[:limit], cls_ids[:limit]), ax=ax)
+
+
+def plot_multiple(func, plots=(2,2), **kwargs):
+    """
+    Plot multiple training examples using the above plotting functions
+
+    Args:
+        func (plotting func)
+        plots (tuple):
+            this is the N x M size of the plot. It should match the
+            number of samples in the batch
+        kwargs: plotting func specific arguments
+    """
+    _, axes = plt.subplots(*plots, figsize=(10, 10))
+    for i, ax in enumerate(axes.flat):
+        func(idx=i, ax=ax, **kwargs)
+    plt.tight_layout()
