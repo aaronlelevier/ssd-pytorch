@@ -32,7 +32,7 @@ def save_model(model, dirname='model_checkpoints/'):
     dt_str = datetime.datetime.now().isoformat()[:19]
     path = os.path.join(dirname, f'model-{dt_str}.cpkt')
     print(f'model saved at: {path}')
-    torch.save(model, path)
+    torch.save(model.state_dict(), path)
 
 
 def get_cpu_count():
