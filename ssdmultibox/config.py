@@ -58,6 +58,10 @@ class _Config:
 
     # SSD
     SSD_LOSS_ALPHA = 1
+
+    # ratio for category hard negative mining
+    HARD_MINING_RATIO = 3
+
     # NMS
     NMS_OVERLAP = 0.5
     NMS_TOP_K = 200

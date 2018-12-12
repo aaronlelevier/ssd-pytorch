@@ -39,7 +39,7 @@ class BbsL1Loss(nn.Module):
 
 
 class CatsBCELoss(nn.Module):
-    def __init__(self, hard_mining_ratio=3):
+    def __init__(self, hard_mining_ratio=cfg.HARD_MINING_RATIO):
         super().__init__()
         self.hard_mining_ratio = hard_mining_ratio
 
@@ -49,12 +49,20 @@ class CatsBCELoss(nn.Module):
         """
         pos_idxs = targets != 20
         neg_idxs = targets == 20
-        neg_loss = F.cross_entropy(inputs[neg_idxs], targets[neg_idxs], reduction='none')
+        neg_loss = F.binary_cross_entropy_with_logits(
+            input=inputs[neg_idxs][:,:-1],
+            target=self.one_hot_encode_to_zeros(targets[neg_idxs])[:,:-1],
+            reduction='none'
+        )
 
         neg_loss_sorted, _ = neg_loss.sort(descending=True)
         neg_hard_mining_count = pos_idxs.sum().item() * self.hard_mining_ratio
         neg_hard_mining_loss = neg_loss_sorted[:neg_hard_mining_count]
-        pos_loss = F.cross_entropy(inputs[pos_idxs], targets[pos_idxs], reduction='none')
+        pos_loss = F.binary_cross_entropy_with_logits(
+            input=inputs[pos_idxs][:,:-1],
+            target=self.one_hot_encoding(targets[pos_idxs])[:,:-1],
+            reduction='none'
+        )
 
         print('pos_loss: {:.4f} neg_hard_mining_loss: {:.4f}'.format(
             pos_loss.sum().item(), neg_hard_mining_loss.sum().item()))
@@ -69,3 +77,10 @@ class CatsBCELoss(nn.Module):
         y_onehot.zero_()
         y = y.type(torch.long)
         return y_onehot.scatter_(1, y, 1)
+
+    @staticmethod
+    def one_hot_encode_to_zeros(y):
+        if len(y.shape) == 1:
+            y = y.unsqueeze(1)
+        y_onehot = torch.FloatTensor(y.shape[0], cfg.NUM_CLASSES).to(cfg.DEVICE)
+        return y_onehot.zero_()
