@@ -1,6 +1,7 @@
+from unittest.mock import patch
+
 import torch
 
-from unittest.mock import patch
 from ssdmultibox import criterion
 from ssdmultibox.config import cfg
 from tests.base import ModelAndDatasetBaseTestCase
@@ -40,19 +41,19 @@ class CriterionTests(ModelAndDatasetBaseTestCase):
 
         self.assert_is_loss_tensor(ret)
 
-    def test_one_hot_encoding(self):
+    def test_one_hot_encode(self):
         y = torch.LongTensor(4,9).random_() % cfg.NUM_CLASSES
         assert y.shape == (4, 9)
 
-        ret = criterion.CatsBCELoss.one_hot_encoding(y)
+        ret = criterion.CatsBCELoss.one_hot_encode(y)
 
         assert ret.shape == (4, 21)
 
-    def test_one_hot_encoding_unsqueezes_if_input_is_1d(self):
+    def test_one_hot_encode_unsqueezes_if_input_is_1d(self):
         y = torch.LongTensor(4).random_() % cfg.NUM_CLASSES
         assert y.shape == (4,)
 
-        ret = criterion.CatsBCELoss.one_hot_encoding(y)
+        ret = criterion.CatsBCELoss.one_hot_encode(y)
 
         assert ret.shape == (4, 21)
 
@@ -95,3 +96,26 @@ class CatsBCELossTests(ModelAndDatasetBaseTestCase):
         assert self.cats_criterion.hard_mining_ratio == cfg.HARD_MINING_RATIO
         assert mock_torch_cat.call_args[0][0][1].shape == \
             (pos_count * self.cats_criterion.hard_mining_ratio, 20)
+
+    def assert_int_equals(self, ret, raw_ret, msg=""):
+        assert (ret.numpy() == raw_ret).all(), msg
+
+    def test_one_hot_encode(self):
+        y = torch.tensor([0, 1, 10, 20])
+
+        ret = criterion.CatsBCELoss.one_hot_encode(y)
+
+        assert ret.shape == (4, 21)
+        values, idxs = ret.max(1)
+        self.assert_int_equals(values, [1, 1, 1, 1])
+        self.assert_int_equals(idxs, [0, 1, 10, 20])
+
+    def test_one_hot_encode_to_zeros(self):
+        y = torch.tensor([0, 1, 10, 20])
+
+        ret = criterion.CatsBCELoss.one_hot_encode_to_zeros(y)
+
+        assert ret.shape == (4, 21)
+        values, idxs = ret.max(1)
+        self.assert_int_equals(values, [0, 0, 0, 0])
+        self.assert_int_equals(idxs, [0, 0, 0, 0])

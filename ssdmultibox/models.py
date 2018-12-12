@@ -27,6 +27,12 @@ class SSDModel(nn.Module):
             layer.requires_grad = False
         return vgg_base
 
+    def unfreeze(self):
+        "sets all model layers to trainable"
+        for layer in self.parameters():
+            layer.requires_grad = True
+
+
 def vgg16_bn(pretrained=False, **kwargs):
     """VGG 16-layer model (configuration "D") with batch normalization
 
