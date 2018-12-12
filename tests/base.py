@@ -58,14 +58,12 @@ class ModelAndDatasetBaseTestCase(BaseTestCase):
             model = SSDModel()
             preds = model(ims)
             PREDS_CACHE.update({
+                'model': model,
                 'gt_bbs': gt_bbs,
                 'gt_cats': gt_cats,
                 'preds': preds
             })
-        for k,v in PREDS_CACHE.items():
-            setattr(cls, k, v)
 
     def setUp(self):
-        self.gt_bbs = self.__class__.gt_bbs
-        self.gt_cats = self.__class__.gt_cats
-        self.preds = self.__class__.preds
+        for k,v in PREDS_CACHE.items():
+            setattr(self, k, v)
