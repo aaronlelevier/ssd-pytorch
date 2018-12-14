@@ -62,40 +62,50 @@ def plot_single_predictions(dataset, idx, targets, ax=None):
         draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
 
 
-def get_targets(gt_cats, idx, bbs_preds=None):
+def get_anchor_bbs_targets(idx, gt_cats):
     """
-    Returns target bbs,cats of either the anchor boxes or the bbs_preds
-    using the anchor box offsets
+    Returns the anchor bbs and cats as labeled by the max IoU and thresh rules
     """
-    gt_cat = torch.tensor(gt_cats[idx])
-    not_bg_mask = gt_cat != 20
-    not_bg_mask = (not_bg_mask == 1).nonzero()
-    not_bg_mask = not_bg_mask.squeeze(1)
-    cats = gt_cats[idx][not_bg_mask]
-    if isinstance(bbs_preds, torch.Tensor):
-        bbs = bbs_preds[idx][not_bg_mask]
-    else:
-        anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-        bbs = anchor_boxes[not_bg_mask] * cfg.SIZE
+    mask = gt_cats[idx] != 20
+    anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+    bbs = anchor_boxes[mask] * cfg.SIZE
+    cats = gt_cats[idx][mask]
+    return bbs, cats
+
+
+def get_pred_targets(idx, gt_cats, preds):
+    """
+    Return the pred bbs and cats as labeled by the max IoU and thresh rules
+    """
+    mask = gt_cats[idx] != 20
+    bbs_preds, cats_preds = preds
+    bbs = bbs_preds[idx][mask]
+    _, cats = cats_preds[idx][mask].max(1)
     return bbs, cats
 
 
 def plot_anchor_bbs(dataset, image_ids, idx, gt_cats, ax=None):
-    "Plots the ground truth anchor boxes"
+    """
+    Plots the ground truth anchor boxes and their groud truth cats
+    """
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx), ax=ax)
+        targets=get_anchor_bbs_targets(idx, gt_cats), ax=ax)
 
 
-def plot_preds(dataset, image_ids, idx, bbs_preds, gt_cats, ax=None):
-    "Plots the predictions based on the ground truth anchor box offsets"
+def plot_preds(dataset, image_ids, idx, gt_cats, preds, ax=None):
+    """
+    Plots the predicted bbs and cats for the labeled anchor boxes.
+
+    NOTE: The bg category will be returned if the model predicts it
+    """
     image_id = image_ids[idx].item()
     dataset_idx = dataset.get_image_id_idx_map()[image_id]
     plot_single_predictions(
         dataset, dataset_idx,
-        targets=get_targets(gt_cats, idx, bbs_preds), ax=ax)
+        targets=get_pred_targets(idx, gt_cats, preds), ax=ax)
 
 
 def plot_nms_preds(dataset, image_ids, idx, preds, limit=5, ax=None):
