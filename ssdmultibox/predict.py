@@ -53,7 +53,7 @@ class Predict:
             conf_thresh (float):
                 percent confidence threshold to filter detections by
         Returns:
-            tuple(bbs, scores) or None
+            tuple(bbs, scores, cls_ids) or None
         """
 
         # this adds the AnchorBox offsets to the preds
@@ -75,7 +75,7 @@ class Predict:
             conf_thresh (float):
                 percent confidence threshold to filter detections by
         Returns:
-            tuple ([nms_bbs, 4], [scores]) or None if no matches
+            tuple ([nms_bbs, 4], [scores], cls_ids) or None if no matches
         """
         item_bbs = item_bbs.detach()
         item_cats = item_cats.detach()
