@@ -216,3 +216,43 @@ class TrainPascalFlatDataset(TrainPascalDataset):
         gt_bbs *= cfg.NORMALIZED_SIZE
 
         return image_id, chw_im, gt_bbs, gt_cats
+
+
+class TransformsTrainPascalFlatDataset(TrainPascalFlatDataset):
+    def __init__(self, transform=None):
+        super().__init__()
+        self.transform = transform
+
+    def __getitem__(self, idx):
+        """
+        Returns:
+            image_id (int)
+            chw_im (3d array): CHW of image
+            gt_bbs (2d array): (n bbs, 4)
+            gt_cats (1d array): (n cats,)
+        """
+        image_ids = self.get_image_ids()
+        image_id = image_ids[idx]
+        ann = self.get_annotations()[image_id]
+        bbs = np.array(ann[BBS])
+        cats = np.array(ann[CATS])
+        image_paths = self.images()
+        im = open_image(image_paths[image_id])
+
+        if self.transform:
+            im, bbs, cats = self.transform_data(im, bbs, cats)
+
+        chw_im = self.scaled_im_by_size_and_chw_format(im)
+        gt_bbs, gt_cats = Bboxer.get_stacked_gt(bbs, cats, im)
+        gt_bbs *= cfg.NORMALIZED_SIZE
+
+        return image_id, chw_im, gt_bbs, gt_cats
+
+    def transform_data(self, im, bbs, cats):
+        annotations = {
+            'image': im,
+            'bboxes': bbs,
+            'category_id': cats
+        }
+        ret = self.transform(**annotations)
+        return ret['image'], np.array(ret['bboxes']), np.array(ret['category_id'])
