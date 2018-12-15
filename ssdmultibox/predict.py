@@ -28,8 +28,7 @@ class Predict:
         scores = torch.empty(0, dtype=torch.float).to(device)
         cls_ids = torch.empty(0, dtype=torch.long).to(device)
 
-        # don't look for bg class
-        for c in range(NUM_CLASSES-1):
+        for c in range(NUM_CLASSES):
             single_preds = cls.single(c, preds, index, conf_thresh)
             if single_preds:
                 single_bbs, single_scores, single_cls_ids = single_preds
@@ -58,8 +57,6 @@ class Predict:
 
         # this adds the AnchorBox offsets to the preds
         bbs_preds, cats_preds = preds
-        # class 20, background is ignored
-        cats_preds = cats_preds[:,:,:-1]
         item_bbs, item_cats = bbs_preds[index], cats_preds[index]
         return cls.single_nms(cls_id, item_bbs, item_cats, conf_thresh)
 
