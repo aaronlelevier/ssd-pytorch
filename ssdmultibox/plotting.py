@@ -162,11 +162,40 @@ def transform_plot_single_predictions(
         draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
 
 
-def transform_plot_anchor_bbs(model_output, idx, dataset):
+def transform_plot_anchor_bbs(model_output, idx, dataset, ax=None):
     cat_names = dataset.categories()
     image_ids, ims, gt_bbs, gt_cats = model_output
     chw_im = ims[idx]
     transform_plot_single_predictions(
         chw_im, gt_bbs, gt_cats, idx, cat_names,
-        targets=get_anchor_bbs_targets(idx, gt_cats)
-    )
+        targets=get_anchor_bbs_targets(idx, gt_cats), ax=ax)
+
+
+def transform_plot_preds(model_output, idx, dataset, preds, ax=None):
+    cat_names = dataset.categories()
+    image_ids, ims, gt_bbs, gt_cats = model_output
+    chw_im = ims[idx]
+    transform_plot_single_predictions(
+        chw_im, gt_bbs, gt_cats, idx, cat_names,
+        targets=get_pred_targets(idx, gt_cats, preds), ax=ax)
+
+
+def transform_plot_nms_preds(model_output, idx, dataset, preds, limit=5, ax=None):
+    cat_names = dataset.categories()
+    image_ids, ims, gt_bbs, gt_cats = model_output
+    chw_im = ims[idx]
+    boxes, scores, cls_ids = Predict.all(preds, index=idx)
+    transform_plot_single_predictions(
+        chw_im, gt_bbs, gt_cats, idx, cat_names,
+        targets=(boxes[:limit], cls_ids[:limit]), ax=ax)
+
+
+def transform_plot_nms_single_preds(model_output, idx, dataset, preds, cls_id, limit=5, ax=None):
+    "Plots NMS predictions for a single object class"
+    cat_names = dataset.categories()
+    image_ids, ims, gt_bbs, gt_cats = model_output
+    chw_im = ims[idx]
+    boxes, scores, cls_ids = Predict.single(cls_id, preds, index=idx)
+    transform_plot_single_predictions(
+        chw_im, gt_bbs, gt_cats, idx, cat_names,
+        targets=(boxes[:limit], cls_ids[:limit]), ax=ax)
