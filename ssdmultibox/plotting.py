@@ -195,7 +195,12 @@ def transform_plot_nms_single_preds(model_output, idx, dataset, preds, cls_id, l
     cat_names = dataset.categories()
     image_ids, ims, gt_bbs, gt_cats = model_output
     chw_im = ims[idx]
-    boxes, scores, cls_ids = Predict.single(cls_id, preds, index=idx)
+    nms_preds = Predict.single(cls_id, preds, index=idx)
+    # guard agains no NMS preds being found based upon the confidence threshold
+    if nms_preds:
+        boxes, scores, cls_ids = nms_preds
+        targets = (boxes[:limit], cls_ids[:limit])
+    else:
+        targets = ([], [])
     transform_plot_single_predictions(
-        chw_im, gt_bbs, gt_cats, idx, cat_names,
-        targets=(boxes[:limit], cls_ids[:limit]), ax=ax)
+        chw_im, gt_bbs, gt_cats, idx, cat_names, targets=targets, ax=ax)
