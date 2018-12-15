@@ -141,3 +141,32 @@ def plot_multiple(func, plots=(2,2), **kwargs):
     for i, ax in enumerate(axes.flat):
         func(idx=i, ax=ax, **kwargs)
     plt.tight_layout()
+
+
+# transform
+
+def transform_plot_single_predictions(
+        chw_im, gt_bbs, gt_cats, idx, cat_names, targets, ax=None):
+    im = np.transpose(chw_im, (1,2,0))
+    ax = show_img(im, ax=ax)
+
+    mask = gt_cats[idx] != 20
+    # anchors
+    for bb in gt_bbs[idx][mask]:
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+        draw_rect(ax, pascal_bb, edgecolor='yellow')
+
+    for bb, cat in zip(*targets):
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+        draw_rect(ax, pascal_bb, edgecolor='red')
+        draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
+
+
+def transform_plot_anchor_bbs(model_output, idx, dataset):
+    cat_names = dataset.categories()
+    image_ids, ims, gt_bbs, gt_cats = model_output
+    chw_im = ims[idx]
+    transform_plot_single_predictions(
+        chw_im, gt_bbs, gt_cats, idx, cat_names,
+        targets=get_anchor_bbs_targets(idx, gt_cats)
+    )
