@@ -13,13 +13,14 @@ class SSDModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.vgg_base = self._create_vgg_base()
-        self.blocks_model = BlocksCustomHead()
-        self.out_conv_head = OutCustomHead()
+        self.blocks_layer = BlocksLayer()
+        self.loc_head = LocHead()
+        self.conf_head = ConfHead()
 
     def forward(self, x):
         x = self.vgg_base(x)
-        x = self.blocks_model(x)
-        return self.out_conv_head(x)
+        x = self.blocks_layer(x)
+        return self.loc_head(x), self.conf_head(x)
 
     def _create_vgg_base(self):
         vgg_base = vgg16_bn(pretrained=True)
@@ -82,7 +83,7 @@ def make_layers():
     return nn.Sequential(*layers)
 
 
-class BlocksCustomHead(nn.Module):
+class BlocksLayer(nn.Module):
     "Returns the blocks for the OutCustomHead"
     def __init__(self):
         super().__init__()
@@ -154,7 +155,7 @@ class OutCustomHead(nn.Module):
                 # NOTE: maybe shouldn't be accessing the `_modules` private OrderedDict here ...
                 fm_ar_outconv = self._modules[f'{k}_{i}']
                 bbs, cats = fm_ar_outconv(v)
-                # just need to check bbs or cats here
+                # initialize all_bbs and all_cats on the first loop
                 if first_loop:
                     all_bbs = bbs
                     all_cats = cats
@@ -185,3 +186,49 @@ class OutConv(nn.Module):
         bs,nf,gx,gy = x.size()
         x = x.permute(0,2,3,1).contiguous()
         return x.view(bs,-1, size)
+
+
+# re-use sources Head classes
+
+class BaseHead(nn.Module):
+    def __init__(self, n):
+        """
+        Returns final output predictions for either bbs or cats
+
+        Args:
+            n (int): should be 4 or cfg.NUM_CLASSES. This is the 2nd dim output size
+        """
+        super().__init__()
+        self.n = n
+        self.block_names = ['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
+        block_sizes = [512, 1024, 512, 256, 256, 256]
+        for name, size in zip(self.block_names, block_sizes):
+            setattr(self, name, nn.Conv2d(size, self.n*cfg.ASPECT_RATIOS, kernel_size=3, padding=1))
+
+    def forward(self, preds):
+        all_loc = []
+        for name in self.block_names:
+            all_loc.append(
+                getattr(self, name)(preds[name]).permute(0, 2, 3, 1).contiguous())
+
+        return torch.cat([x.view(x.size(0), -1, self.n) for x in all_loc], dim=1)
+
+
+class ConfHead(BaseHead):
+    def __init__(self, n=cfg.NUM_CLASSES):
+        super().__init__(n)
+
+
+class LocHead(BaseHead):
+    def __init__(self, n=4):
+        super().__init__(n)
+
+        self.anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
+        self.fm_max_offsets = TensorBboxer.get_feature_map_max_offsets()
+
+    def forward(self, preds):
+        bbs = super().forward(preds)
+
+        return torch.clamp(
+            self.anchor_boxes + (torch.tanh(bbs).to(cfg.DEVICE) * self.fm_max_offsets),
+        min=0, max=1) * cfg.NORMALIZED_SIZE
