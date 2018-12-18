@@ -42,8 +42,8 @@ setup(
     license='MIT',
     description='SSD Object Detection using PyTorch',
     author='Aaron Lelevier',
-    author_email='aaron.lelevier@gmail.com',  # SEE NOTE BELOW (*)
-    packages=find_packages(exclude=['tests*']),
+    author_email='aaron.lelevier@gmail.com',
+    packages=find_packages(exclude=['tests*', 'notebooks*']),
     include_package_data=True,
     install_requires=[],
     python_requires=">=3.6",
