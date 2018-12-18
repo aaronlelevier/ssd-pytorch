@@ -26,6 +26,11 @@ class SSDModel(nn.Module):
         vgg_base = vgg16_bn(pretrained=True)
         for layer in vgg_base.parameters():
             layer.requires_grad = False
+
+        # remove inherited classifier - this is required to load the VGG
+        # init_weights, but we don't want it in our model
+        delattr(vgg_base, 'classifier')
+
         return vgg_base
 
     def unfreeze(self):
