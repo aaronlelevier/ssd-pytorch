@@ -20,7 +20,7 @@ def open_image(image_path):
     return cv2.imread(image_path, flags)/255
 
 
-def save_model(model, dirname='model_checkpoints/'):
+def save_model(model, dirname=None):
     """
     Saves a torch nn.Module
 
@@ -28,7 +28,7 @@ def save_model(model, dirname='model_checkpoints/'):
         model (nn.Module)
         dirname (str)
     """
-    dirname = dirname or os.getcwd()
+    dirname = dirname or os.path.join(cfg.PROJECT_DIR, 'model_checkpoints')
     dt_str = datetime.datetime.now().isoformat()[:19]
     path = os.path.join(dirname, f'model-{dt_str}.cpkt')
     print(f'model saved at: {path}')

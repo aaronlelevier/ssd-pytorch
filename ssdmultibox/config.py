@@ -32,7 +32,10 @@ class InvalidConfigError(Exception):
 class _Config:
     "Global values for Model config"
 
+    PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     DATA_DIR = get_data_dir()
+
     IMAGE_PATH = get_image_path()
 
     # image size
