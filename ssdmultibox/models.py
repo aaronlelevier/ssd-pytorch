@@ -236,4 +236,4 @@ class LocHead(BaseHead):
 
         return torch.clamp(
             self.anchor_boxes + (torch.tanh(bbs).to(cfg.DEVICE) * self.fm_max_offsets),
-        min=0, max=1) * cfg.NORMALIZED_SIZE
+        min=0, max=1)

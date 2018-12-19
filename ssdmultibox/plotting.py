@@ -68,7 +68,7 @@ def get_anchor_bbs_targets(idx, gt_cats):
     """
     mask = gt_cats[idx] != 20
     anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-    bbs = anchor_boxes[mask] * cfg.SIZE
+    bbs = anchor_boxes[mask]
     cats = gt_cats[idx][mask]
     return bbs, cats
 
@@ -153,11 +153,11 @@ def transform_plot_single_predictions(
     mask = gt_cats[idx] != 20
     # anchors
     for bb in gt_bbs[idx][mask]:
-        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb) * cfg.NORMALIZED_SIZE
         draw_rect(ax, pascal_bb, edgecolor='yellow')
 
     for bb, cat in zip(*targets):
-        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb)
+        pascal_bb = Bboxer.fastai_bb_to_pascal_bb(bb) * cfg.NORMALIZED_SIZE
         draw_rect(ax, pascal_bb, edgecolor='red')
         draw_text(ax, pascal_bb[:2], cat_names[cat.item()], sz=8)
 

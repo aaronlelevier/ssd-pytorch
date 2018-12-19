@@ -13,7 +13,7 @@ class SSDModelTests(ModelAndDatasetBaseTestCase):
     def test_unfreeze(self):
         # base network starts out frozen
         for i, layer in enumerate(self.model.parameters()):
-            if i < 58:
+            if i < 52:
                 assert layer.requires_grad == False
             else:
                 assert layer.requires_grad == True

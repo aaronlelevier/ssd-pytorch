@@ -244,7 +244,6 @@ class TransformsTrainPascalFlatDataset(TrainPascalFlatDataset):
 
         chw_im = self.scaled_im_by_size_and_chw_format(im)
         gt_bbs, gt_cats = Bboxer.get_stacked_gt(bbs, cats, im)
-        gt_bbs *= cfg.NORMALIZED_SIZE
 
         return image_id, chw_im, gt_bbs, gt_cats
 

@@ -1,5 +1,5 @@
-from tests.base import ModelAndDatasetBaseTestCase
 from ssdmultibox import plotting
+from tests.base import ModelAndDatasetBaseTestCase
 
 
 class PlottingTests(ModelAndDatasetBaseTestCase):
@@ -11,10 +11,10 @@ class PlottingTests(ModelAndDatasetBaseTestCase):
 
         self.assert_arr_equals(
             bbs,
-            [[100.0000, 100.0000, 200.0000, 200.0000],
-             [ 50.0000, 100.0000, 250.0000, 200.0000],
-             [100.0000, 100.0000, 300.0000, 200.0000],
-             [ 97.2954, 100.0000, 202.7046, 200.0000]]
+            [[0.33333334, 0.33333334, 0.6666667 , 0.6666667 ],
+            [0.16666667, 0.33333334, 0.8333333 , 0.6666667 ],
+            [0.33333334, 0.33333334, 1.        , 0.6666667 ],
+            [0.3243179 , 0.33333334, 0.67568207, 0.6666667 ]]
         )
         self.assert_arr_equals(
             cats,

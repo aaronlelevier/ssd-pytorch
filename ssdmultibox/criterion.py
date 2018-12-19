@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ssdmultibox.bboxer import TensorBboxer
 from ssdmultibox.config import cfg
 
 
