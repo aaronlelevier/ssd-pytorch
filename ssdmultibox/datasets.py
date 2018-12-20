@@ -240,14 +240,14 @@ class TransformsTrainPascalFlatDataset(TrainPascalFlatDataset):
         im = open_image(image_paths[image_id])
 
         if self.transform:
-            im, bbs, cats = self.transform_data(im, bbs, cats)
+            im, bbs, cats = self._transform(im, bbs, cats)
 
         chw_im = self.scaled_im_by_size_and_chw_format(im)
         gt_bbs, gt_cats = Bboxer.get_stacked_gt(bbs, cats, im)
 
         return image_id, chw_im, gt_bbs, gt_cats
 
-    def transform_data(self, im, bbs, cats):
+    def _transform(self, im, bbs, cats):
         annotations = {
             'image': im,
             'bboxes': bbs,
