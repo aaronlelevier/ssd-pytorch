@@ -80,7 +80,8 @@ def get_pred_targets(idx, gt_cats, preds):
     mask = gt_cats[idx] != 20
     bbs_preds, cats_preds = preds
     bbs = bbs_preds[idx][mask]
-    _, cats = cats_preds[idx][mask].max(1)
+    # add [:,:-1] so we don't predict bg!
+    _, cats = cats_preds[idx][mask][:,:-1].max(1)
     return bbs, cats
 
 

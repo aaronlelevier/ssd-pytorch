@@ -28,6 +28,11 @@ class PredictTests(ModelAndDatasetBaseTestCase):
         assert ret_bbs.shape[0] == ret_scores.shape[0]
         assert ret_bbs.shape[0] == ret_cls_ids.shape[0]
 
+    def test_all__bg_is_not_predicted(self):
+        ret_bbs, ret_scores, ret_cls_ids = Predict.all(self.preds)
+
+        assert (ret_cls_ids == 20).sum().item() == 0
+
     @patch("ssdmultibox.predict.Predict.single_nms")
     def test_single__calls_single_nms(
             self, mock_single_nms):
@@ -72,6 +77,10 @@ class PredictTests(ModelAndDatasetBaseTestCase):
 
         with pytest.raises(IndexError):
             Predict.single(cls_id, self.preds, index=index)
+
+    def test_single__returns_empty_for_bg(self):
+        cls_id = 20
+        assert not Predict.single(cls_id, self.preds)
 
     def test_single_nms(self):
         cls_id = 0
