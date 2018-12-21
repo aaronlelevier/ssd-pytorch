@@ -57,7 +57,7 @@ class _Config:
     ASPECT_RATIOS = 6
 
     # max allowed prediction offset from anchor box anchor points
-    ALLOWED_OFFSET = .25
+    ALLOWED_OFFSET = .5
 
     # SSD
     SSD_LOSS_ALPHA = 1

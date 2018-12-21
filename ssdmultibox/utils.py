@@ -6,6 +6,8 @@ import subprocess
 import cv2
 import torch
 
+from ssdmultibox.config import cfg
+
 
 def open_image(image_path):
     """
