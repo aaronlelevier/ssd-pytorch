@@ -89,7 +89,7 @@ def make_layers():
 
 
 class BlocksLayer(nn.Module):
-    "Returns the blocks for the OutCustomHead"
+    "Returns the blocks for the LocHead and ConfHead"
     def __init__(self):
         super().__init__()
         self.conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=1)
@@ -128,72 +128,6 @@ class BlocksLayer(nn.Module):
         blocks['block11'] = out11_2
         return blocks
 
-
-class OutCustomHead(nn.Module):
-    """
-    Returns the final stacked predictions as a tuple (bbs, cats)
-
-    bbs predictions are calculated using the anchor boxess + the predicted
-    offset and are [0,1] normalized
-
-    cats are the one hot encoded category prediction for all categories
-    including the background category
-    """
-    def __init__(self):
-        super().__init__()
-        self.aspect_ratio_count = 6
-        self.anchor_boxes = TensorBboxer.get_stacked_anchor_boxes()
-        self.fm_max_offsets = TensorBboxer.get_feature_map_max_offsets()
-        self._setup_outconvs()
-
-    def _setup_outconvs(self):
-        block_names = ['block4', 'block7', 'block8', 'block9', 'block10', 'block11']
-        block_sizes = [512, 1024, 512, 256, 256, 256]
-        for i, block_name in enumerate(block_names):
-            for j in range(self.aspect_ratio_count):
-                setattr(self, f'{block_name}_{j}', OutConv(block_sizes[i]))
-
-    def forward(self, blocks):
-        first_loop = True
-        for k,v in blocks.items():
-            for i in range(self.aspect_ratio_count):
-                # NOTE: maybe shouldn't be accessing the `_modules` private OrderedDict here ...
-                fm_ar_outconv = self._modules[f'{k}_{i}']
-                bbs, cats = fm_ar_outconv(v)
-                # initialize all_bbs and all_cats on the first loop
-                if first_loop:
-                    all_bbs = bbs
-                    all_cats = cats
-                    first_loop = False
-                else:
-                    all_bbs = torch.cat((all_bbs, bbs), dim=1)
-                    all_cats = torch.cat((all_cats, cats), dim=1)
-
-        all_bbs_w_offsets = torch.clamp(
-            self.anchor_boxes + (torch.tanh(all_bbs).to(cfg.DEVICE) * self.fm_max_offsets),
-        min=0, max=1) * cfg.NORMALIZED_SIZE
-
-        return all_bbs_w_offsets, all_cats
-
-
-class OutConv(nn.Module):
-    def __init__(self, nin):
-        super().__init__()
-        self.bbs_size = 4
-        self.oconv1 = nn.Conv2d(nin, self.bbs_size, 3, padding=1)
-        self.oconv2 = nn.Conv2d(nin, cfg.NUM_CLASSES, 3, padding=1)
-
-    def forward(self, x):
-        return [self.flatten_conv(self.oconv1(x), self.bbs_size),
-                self.flatten_conv(self.oconv2(x), cfg.NUM_CLASSES)]
-
-    def flatten_conv(self, x, size):
-        bs,nf,gx,gy = x.size()
-        x = x.permute(0,2,3,1).contiguous()
-        return x.view(bs,-1, size)
-
-
-# re-use sources Head classes
 
 class BaseHead(nn.Module):
     def __init__(self, n):
