@@ -18,8 +18,11 @@ def open_image(image_path):
     Returns:
         nd.ndarray
     """
-    flags = cv2.IMREAD_UNCHANGED+cv2.IMREAD_ANYDEPTH+cv2.IMREAD_ANYCOLOR
-    return cv2.imread(image_path, flags)/255
+    bgr_img = cv2.imread(image_path)
+    # get b,g,r
+    b,g,r = cv2.split(bgr_img)
+    # switch it to rgb
+    return cv2.merge([r,g,b])/255.
 
 
 def save_model(model, dirname=None):
